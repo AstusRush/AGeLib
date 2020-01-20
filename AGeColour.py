@@ -8,6 +8,8 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+Colours = {"Dark":Dark, "Bright":Bright}
+
 def Dark():
     # Inspired by Discord
     tbrush = QtGui.QBrush(QtGui.QColor(255, 0, 255))
