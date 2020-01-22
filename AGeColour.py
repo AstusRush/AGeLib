@@ -8,8 +8,6 @@
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-Colours = {"Dark":Dark, "Bright":Bright}
-
 def Dark():
     # Inspired by Discord
     tbrush = QtGui.QBrush(QtGui.QColor(255, 0, 255))
@@ -410,3 +408,5 @@ def Red_ERROR():
     #      UI        Special Background Colour  Special Text Colour
     return palette , (54/255, 57/255, 63/255) , (215/255, 213/255, 201/255)
 
+
+Colours = {"Dark":Dark, "Bright":Bright}
