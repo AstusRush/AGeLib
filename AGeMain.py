@@ -1,6 +1,6 @@
 # Astus General Library Main File
 
-Version = "2.0.0"
+Version = "2.1.0"
 # Using Semantic Versioning 2.0.0 https://semver.org/
 version = Version
 Author = "Robin \'Astus\' Albers"
@@ -2341,7 +2341,7 @@ class AWWF(QtWidgets.QMainWindow): # Astus Window With Frame
     """
     #MAYBE: Implement borderless windowed mode as an alternative to full screen. This could be handled by adding a flag that is read in showFullScreen to decide which full screen mode to apply
     #TODO: Remove dependencies for TopBar and StatusBar to make these entirely optional
-    def __init__(self, parent = None, includeTopBar=True, initTopBar=True, includeStatusBar=True, FullscreenHidesBars = True):
+    def __init__(self, parent = None, includeTopBar=True, initTopBar=True, includeStatusBar=True, FullscreenHidesBars = False):
         self.BarsHidden = False
         super(AWWF, self).__init__(parent)
         self.includeTopBar, self.includeStatusBar, self.FullscreenHidesBars = includeTopBar, includeStatusBar, FullscreenHidesBars
@@ -2703,7 +2703,7 @@ class TopBar_Widget(QtWidgets.QWidget):
 
         self.CloseButton = QtWidgets.QToolButton(self)
         self.CloseButton.setObjectName("CloseButton")
-        self.layout().addWidget(self.CloseButton, 0, 104, 1, 1,QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.CloseButton, 0, 108, 1, 1,QtCore.Qt.AlignRight)
         self.CloseButton.setText("🗙")
 
         self.RedHighlightPalette = QtGui.QPalette()
@@ -2719,7 +2719,7 @@ class TopBar_Widget(QtWidgets.QWidget):
 
         self.MaximizeButton = QtWidgets.QToolButton(self)
         self.MaximizeButton.setObjectName("MaximizeButton")
-        self.layout().addWidget(self.MaximizeButton, 0, 103, 1, 1,QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.MaximizeButton, 0, 107, 1, 1,QtCore.Qt.AlignRight)
         self.MaximizeButton.setText("🗖")
         self.MaximizeButton.installEventFilter(self)
         self.MaximizeButton.setAutoRaise(True)
@@ -2727,28 +2727,38 @@ class TopBar_Widget(QtWidgets.QWidget):
 
         self.MinimizeButton = QtWidgets.QToolButton(self)
         self.MinimizeButton.setObjectName("MinimizeButton")
-        self.layout().addWidget(self.MinimizeButton, 0, 102, 1, 1,QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.MinimizeButton, 0, 106, 1, 1,QtCore.Qt.AlignRight)
         self.MinimizeButton.setText("🗕")
         self.MinimizeButton.installEventFilter(self)
         self.MinimizeButton.setAutoRaise(True)
         self.MinimizeButton.setSizePolicy(self.ButtonSizePolicy)
 
+        self.OptionsButton = QtWidgets.QToolButton(self)
+        self.OptionsButton.setObjectName("OptionsButton")
+        self.layout().addWidget(self.OptionsButton, 0, 105, 1, 1,QtCore.Qt.AlignRight)
+        self.OptionsButton.setText("⚙")
+        self.OptionsButton.setToolTip("Show the options window")
+        self.OptionsButton.installEventFilter(self)
+        self.OptionsButton.setAutoRaise(True)
+        self.OptionsButton.setSizePolicy(self.ButtonSizePolicy)
+
         self.MoveMe = QtWidgets.QLabel(self)
         self.MoveMe.setObjectName("MoveMe")
-        self.layout().addWidget(self.MoveMe, 0, 101, 1, 1,QtCore.Qt.AlignRight)
+        self.layout().addWidget(self.MoveMe, 0, 104, 1, 1,QtCore.Qt.AlignRight)
         self.MoveMe.setText("  🖐  ")#▨#🖐
         self.MoveMe.setCursor(QtGui.QCursor(QtCore.Qt.OpenHandCursor))
 
         self.CloseButton.clicked.connect(self.Exit)
         self.MaximizeButton.clicked.connect(self.ToggleMinMax)
         self.MinimizeButton.clicked.connect(self.Minimize)
+        self.OptionsButton.clicked.connect(App().Show_Options)
 
         try:
             #self.window().menuBar().installEventFilter(self)
             if IncludeMenu:
                 self.Menu = QtWidgets.QToolButton(self)
                 self.Menu.setObjectName("Menu")
-                self.layout().addWidget(self.Menu, 0, 100, 1, 1,QtCore.Qt.AlignRight)
+                self.layout().addWidget(self.Menu, 0, 103, 1, 1,QtCore.Qt.AlignRight)
                 self.Menu.setText("\u2630")#☰ #("≡")
                 self.Menu.setAutoRaise(True)
                 self.Menu.setPopupMode(QtWidgets.QToolButton.InstantPopup)
@@ -2763,7 +2773,7 @@ class TopBar_Widget(QtWidgets.QWidget):
             self.AdvancedCB.setToolTip("Advanced Mode (alt+A)")
             self.AdvancedCB.setChecked(QtWidgets.QApplication.instance().advanced_mode)
             self.AdvancedCB.setObjectName("AdvancedCB")
-            self.layout().addWidget(self.AdvancedCB, 0, 99, 1, 1,QtCore.Qt.AlignRight)
+            self.layout().addWidget(self.AdvancedCB, 0, 102, 1, 1,QtCore.Qt.AlignRight)
             self.AdvancedCB.clicked.connect(QtWidgets.QApplication.instance().ToggleAdvancedMode)
 
         if IncludeFontSpinBox:
@@ -2772,7 +2782,7 @@ class TopBar_Widget(QtWidgets.QWidget):
             self.Font_Size_spinBox.setMaximum(25)
             self.Font_Size_spinBox.setProperty("value", self.font().pointSize())
             self.Font_Size_spinBox.setObjectName("Font_Size_spinBox")
-            self.layout().addWidget(self.Font_Size_spinBox, 0, 98, 1, 1,QtCore.Qt.AlignRight)
+            self.layout().addWidget(self.Font_Size_spinBox, 0, 101, 1, 1,QtCore.Qt.AlignRight)
             self.Font_Size_spinBox.valueChanged.connect(self.ChangeFontSize)
 
         if IncludeErrorButton:
@@ -2781,7 +2791,7 @@ class TopBar_Widget(QtWidgets.QWidget):
             self.Error_Label.setText(QtWidgets.QApplication.instance().LastNotificationText)
             self.Error_Label.setToolTip(QtWidgets.QApplication.instance().LastNotificationToolTip)
             self.Error_Label.setIcon(QtWidgets.QApplication.instance().LastNotificationIcon)
-            self.layout().addWidget(self.Error_Label, 0, 97, 1, 1,QtCore.Qt.AlignRight)
+            self.layout().addWidget(self.Error_Label, 0, 100, 1, 1,QtCore.Qt.AlignRight)
             self.Error_Label.installEventFilter(self)
             self.Error_Label.clicked.connect(QtWidgets.QApplication.instance().Show_Notification_Window)
 
