@@ -85,12 +85,14 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
     returnPressed = pyqtSignal()
     returnCtrlPressed = pyqtSignal()
     S_Execute = pyqtSignal()
-    #def __init__(self, parent = None, Lexer = _AGeIDE_SH.Highlighter_Python_AGeSimple, additionalKeywords=[], ExecuteButton = True, ExecuteButtonToolTip = "Execute the code"):
-    def __init__(self, parent = None, Lexer = _AGeIDE_SH.Highlighter_Python_SpyderAndQSci, additionalKeywords=[],
+    #def __init__(self, parent = None, Lexer = _AGeIDE_SH.Highlighter_Python_AGeSimple, additionalKeywords=None, ExecuteButton = True, ExecuteButtonToolTip = "Execute the code"):
+    def __init__(self, parent = None, Lexer = _AGeIDE_SH.Highlighter_Python_SpyderAndQSci, additionalKeywords=None,
                     ExecuteButton = True, ExecuteButtonToolTip = "Execute the code",
                     SaveButton = False, LoadButton = False, StandardFolder = "", #CRITICAL: Implement these!!! (EDFA could use these to make saving and loading templates easier.)
                     CheckBox = False, CheckBoxToolTip = "This Check Box seems to have no function",
                     ):
+        if additionalKeywords is None:
+            additionalKeywords = []
         self.hasFloater = False
         self._rectToMultiLast = timetime()
         super(CodeEditorWidget, self).__init__(parent)
@@ -313,7 +315,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             self.EditorSc.setIndentationGuides(True) # Sets vertical lines to highlight blocks
             #
             #VALIDATE: This is probably done automatically. It is set correctly on windows. Is it set correctly on Linux, too?
-            # Does "Darwin" use Unix or Mac EoL symbols? I think it might use Unix... If this is ever commented out "Darwin" should be added to one of those cases...
+            # Does "Darwin" use Unix or Mac EoL symbols? I think it might use Unix... If this is ever un-commented "Darwin" should be added to one of those cases...
             #if platform.system() == "Linux":
             #    self.EditorSc.setEolMode(Qsci.QsciScintilla.EolUnix)
             #elif platform.system() == "Mac":
@@ -560,10 +562,12 @@ class _MemberListWidget(QtWidgets.QListWidget):
 #CRITICAL: Validate (should already be in) self should refer to the window instead of the widget for easier navigation
 
 class ConsoleWidget(QtWidgets.QSplitter):
-    def __init__(self, parent = None, additionalKeywords=[]):
+    def __init__(self, parent = None, additionalKeywords=None):
         """
         TODO: Write Documentation
         """
+        if additionalKeywords is None:
+            additionalKeywords = []
         super(ConsoleWidget, self).__init__(parent)
         self.setOrientation(QtCore.Qt.Horizontal)
         #
@@ -661,19 +665,27 @@ class ConsoleWidget(QtWidgets.QSplitter):
         except:
             NC(exc=sys.exc_info(),win=self.window().windowTitle(),func="ConsoleWidget.executeCode",input=input_text)
 
-    def display(self, *args, sep=" ", end="\n"):
-        # type: (*object,str,str) -> None
+    def display(self, *args, sep=" ", end="\n", scroll=False):
+        # type: (*object,str,str,bool) -> None
         l = []
         for i in args:
             l.append(str(i))
         self.DisplayWidget.setPlainText(str(sep).join(l)+str(end))
+        if scroll:
+            App().processEvents()
+            self.DisplayWidget.verticalScrollBar().setValue(self.DisplayWidget.verticalScrollBar().maximum())
+            App().processEvents()
         
-    def dpl(self, *args, sep=" ", end="\n"):
-        # type: (*object,str,str) -> None
+    def dpl(self, *args, sep=" ", end="\n", scroll=False):
+        # type: (*object,str,str,bool) -> None
         l = []
         for i in args:
             l.append(str(i))
         self.DisplayWidget.setPlainText(self.DisplayWidget.toPlainText()+str(sep).join(l)+str(end))
+        if scroll:
+            App().processEvents()
+            self.DisplayWidget.verticalScrollBar().setValue(self.DisplayWidget.verticalScrollBar().maximum())
+            App().processEvents()
 
     def dir(self,thing,filterItem=None):
         # type: (typing.Any,list[str]|None) -> list[str]

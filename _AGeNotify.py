@@ -176,6 +176,7 @@ class NC: # Notification Class
         `exc = True` or `sys.exc_info()`   \n
         `tb` should be a string containing the callstack or `True` to generate a callstack
         """
+        #TODO: Also implement logging with the logging module and use that as output
         self._time_time = timetime()
         self._init_Values()
         self._was_send = False
@@ -259,7 +260,7 @@ class NC: # Notification Class
             #TODO: The lvl is 1 and no DplStr was given there should be a small chance that the DplStr is set to "I'm afraid I can't do that, Dave.". This could be done by generating a random number and using modulo.
             #       But the chance should be less than 1/100. Maybe something like 1/250? or 1/200?
             if send == True:
-                self.send()
+                self.send(processEvents=processEvents)
         except common_exceptions as inst: #TODO: Clean this up and 
             exc_type, exc_obj, exc_tb = sys.exc_info()
             traceback.print_exception(exc_type, exc_obj, exc_tb)
@@ -272,7 +273,7 @@ class NC: # Notification Class
             self.exc_obj = inst
             self.Error = str(inst)
             self.GenerateLevelName()
-            self.send(force=True)
+            self.send(force=True, processEvents=processEvents)
     
     def _init_Values(self):
         self.exc_type, self.exc_obj, self.exc_tb = None,None,None
