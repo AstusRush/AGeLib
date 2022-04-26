@@ -183,8 +183,9 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
         except:
             NC(1,exc=True)
         self.recolour()
-        font = QtGui.QFont()
-        font.setFamily("Consolas")
+        #font = QtGui.QFont("Monospace")
+        #font.setFamily("Consolas")
+        font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
         self.setFont(font)
         self.installEventFilter(self)
 
@@ -577,8 +578,9 @@ class ConsoleWidget(QtWidgets.QSplitter):
         self.updateLocals = None
         #
         
-        font = QtGui.QFont()
-        font.setFamily("Consolas")
+        #font = QtGui.QFont("Monospace")
+        #font.setFamily("Consolas")
+        font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
         self.Console = CodeEditorWidget(self,additionalKeywords=self.additionalKeywords()+additionalKeywords,
                                         ExecuteButton=True, ExecuteButtonToolTip="Execute the code",
                                         CheckBox = True, CheckBoxToolTip = "If checked the locals will be persistend between executions.\nThus if not checked the locals will be cleared before and after execution."
@@ -1185,8 +1187,9 @@ class exec_Window(AWWF):
             self.setWindowIcon(QtWidgets.QApplication.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
             
             self.Globals = globals()
-            font = QtGui.QFont()
-            font.setFamily("Consolas")
+            #font = QtGui.QFont("Monospace")
+            #font.setFamily("Consolas")
+            font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
             
             self.TabWidget = MTabWidget(self)
             self.setCentralWidget(self.TabWidget)
