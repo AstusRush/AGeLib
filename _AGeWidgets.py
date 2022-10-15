@@ -58,10 +58,27 @@ class BaseTextEdit(QtWidgets.QTextEdit):
             except: # For old Qt Versions
                 self.setTabStopWidth(4 * metrics.averageCharWidth())
         return super(BaseTextEdit, self).eventFilter(source, event)
-
+    
     def text(self):
         return self.toPlainText()
-
+    
+    def setText(self, text: str) -> None:
+        """
+        Set text but do not clear the undo/redo history.
+        For normal Qt behaviour use `setTextCH`
+        """
+        doc = self.document()
+        curs = QtGui.QTextCursor(doc)
+        curs.select(QtGui.QTextCursor.SelectionType.Document)
+        curs.insertText(text)
+    
+    def setTextCH(self, text: str) -> None:
+        """
+        Set text and clear undo/redo history
+        (This is the standard Qt implementation)
+        """
+        return super().setText(text)
+    
     def insertFromMimeData(self, MIMEData):
         try:
             Text = MIMEData.text()
@@ -380,7 +397,7 @@ class ToolButton(QtWidgets.QToolButton):
             else:
                 f *= scale
         return f
-        
+    
     def updateToDPI(self):
         """
         Calls all set...Size methods with the previous values to adjust their DPI scaling.
@@ -389,7 +406,7 @@ class ToolButton(QtWidgets.QToolButton):
             self.setMinimumSize(*self._last_setMinimumSize)
         if self._last_setIconSize != (None,None):
             self.setIconSize(*self._last_setIconSize)
-        
+    
     def setMinimumSize(self, w,h = None):
         self._last_setMinimumSize = (w,h)
         if h is None:
@@ -398,8 +415,8 @@ class ToolButton(QtWidgets.QToolButton):
             t = (w,h)
         t = self.scaleToDPI(t)
         w,h = t
-        super(ToolButton, self).setMinimumSize(w,h)
-        
+        super(ToolButton, self).setMinimumSize(int(w),int(h))
+    
     def setIconSize(self, w,h = None):
         self._last_setIconSize = (w,h)
         if h is None:
@@ -408,7 +425,7 @@ class ToolButton(QtWidgets.QToolButton):
             t = (w,h)
         t = self.scaleToDPI(t)
         w,h = t
-        super(ToolButton, self).setIconSize(QtCore.QSize(w,h))
+        super(ToolButton, self).setIconSize(QtCore.QSize(int(w),int(h)))
 
 class MenuAction(QtWidgets.QAction):
     def __init__(self, parent=None, text=None, tooltip=None, action=None, add=False, icon=None):
@@ -608,3 +625,57 @@ class _TextAddon_Finder_Floater(QtWidgets.QWidget):
 
 #endregion find
 
+#region layout
+class TightGridWidget(QtWidgets.QWidget):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent=parent)
+        self.setLayout(QtWidgets.QGridLayout(self))
+        self.layout().setObjectName("gridLayout")
+        self.layout().setContentsMargins(0,0,0,0)
+    
+    def addWidget(self, widget, *args, **kwargs):
+        """
+        Allows creating a widget and adding it to the grid layout in one line. \n
+        (This is just a wrapper for `layout().addWidget` that returns the widget.) \n
+        This can make it much more readable when adding several spin boxes or labels to a layout.
+        """
+        #NOTE: widget must be a QWidget or a subclass but type-hinting this actually stops the linter from working correctly
+        #       as it then only sees a QWidget returned instead of what you actually gave it.
+        self.layout().addWidget(widget, *args, **kwargs)
+        return widget
+        #if typing.TYPE_CHECKING:
+        #    return widget
+        #else:
+        #    if isinstance(widget, QtWidgets.QWidget):
+        #        return widget
+        #    else:
+        #        NC(1,f"{widget} is not a subclass of QtWidgets.QWidget!", input=args, func=f"{type(self)}.addWidget")
+        #        return None
+
+class TightGridFrame(QtWidgets.QFrame):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent=parent)
+        self.setFrameStyle(self.Box | self.Sunken)
+        self.setLayout(QtWidgets.QGridLayout(self))
+        self.layout().setObjectName("gridLayout")
+        #self.layout().setContentsMargins(0,0,0,0)
+    
+    def addWidget(self, widget, *args, **kwargs):
+        """
+        Allows creating a widget and adding it to the grid layout in one line. \n
+        (This is just a wrapper for `layout().addWidget` that returns the widget.) \n
+        This can make it much more readable when adding several spin boxes or labels to a layout.
+        """
+        #NOTE: widget must be a QWidget or a subclass but type-hinting this actually stops the linter from working correctly
+        #       as it then only sees a QWidget returned instead of what you actually gave it.
+        self.layout().addWidget(widget, *args, **kwargs)
+        return widget
+        #if typing.TYPE_CHECKING:
+        #    return widget
+        #else:
+        #    if isinstance(widget, QtWidgets.QWidget):
+        #        return widget
+        #    else:
+        #        NC(1,f"{widget} is not a subclass of QtWidgets.QWidget!", input=args, func=f"{type(self)}.addWidget")
+        #        return None
+#endregion layout
