@@ -12,6 +12,7 @@ from . import _AGeWidgets as AGeWidgets
 
 import math
 import typing
+import weakref
 
 #region Helper Functions
 def roundToN(x,n):
@@ -20,6 +21,7 @@ def roundToN(x,n):
 
 #region Typewidgets
 class _TypeWidget(AGeWidgets.TightGridWidget):
+    S_ValueChanged:pyqtSignal = None
     def __init__(self, parent: 'QtWidgets.QWidget') -> None:
         super().__init__(parent=parent)
     
@@ -47,6 +49,7 @@ class Int(_TypeWidget):
         if max_:
             self.SpinBox.setMaximum(max_)
         self.SpinBox.setValue(default)
+        self.S_ValueChanged = self.SpinBox.valueChanged
     
     def get(self) -> int:
         return self.SpinBox.value()
@@ -70,7 +73,13 @@ class Float(_TypeWidget):
         else:
             self.SpinBox = self.addWidget(DoubleSpinBox(self),0,1)
             self.SpinBox.setDecimals(10)
-            self.SpinBox.setStepType(self.SpinBox.AdaptiveDecimalStepType)
+            try:
+                try:
+                    self.SpinBox.setStepType(self.SpinBox.AdaptiveDecimalStepType)
+                except:
+                    self.SpinBox.setStepType(self.SpinBox.StepType.AdaptiveDecimalStepType)
+            except:
+                ExceptionOutput()
         if unit:
             self.SpinBox.setSuffix(f" {unit}")
         if min_:
@@ -78,6 +87,7 @@ class Float(_TypeWidget):
         if max_:
             self.SpinBox.setMaximum(max_)
         self.SpinBox.setValue(default)
+        self.S_ValueChanged = self.SpinBox.valueChanged
     
     def get(self) -> float:
         return self.SpinBox.value()
@@ -92,10 +102,12 @@ class Float(_TypeWidget):
         self.SpinBox.setValue(other.SpinBox.value())
 
 class Bool(_TypeWidget):
+    S_ValueChanged:pyqtSignal = pyqtSignal(bool)
     def __init__(self, parent: 'QtWidgets.QWidget', displayname:str, default:bool) -> None:
         super().__init__(parent)
         self.Checkbox = self.addWidget(QtWidgets.QCheckBox(f"{displayname}", self))
         self.Checkbox.setChecked(default)
+        self.Checkbox.stateChanged.connect(lambda: self.S_ValueChanged.emit(self.Checkbox.isChecked()))
     
     def get(self) -> bool:
         return self.Checkbox.isChecked()
@@ -114,6 +126,7 @@ class Array(_TypeWidget): #TODO: Make a thingy to input arrays. This should prob
         super().__init__(parent)
 
 class Path(_TypeWidget):
+    S_ValueChanged:pyqtSignal = pyqtSignal(str)
     def __init__(self, parent: 'QtWidgets.QWidget', displayname:str, default:str, defaultDir:str="") -> None:
         super().__init__(parent)
         self.NameLabel = self.addWidget(QtWidgets.QLabel(f"{displayname}", self),0,0)
@@ -127,6 +140,7 @@ class Path(_TypeWidget):
         if path:
             self.Path = path
             self.Button.setToolTip(path)
+            self.S_ValueChanged.emit(path)
     
     def get(self) -> str:
         return self.Path
@@ -144,6 +158,7 @@ class Path(_TypeWidget):
         self.Button.setToolTip(path)
 
 class List(_TypeWidget):
+    S_ValueChanged:pyqtSignal = pyqtSignal(str)
     def __init__(self, parent: 'QtWidgets.QWidget', displayname:str, default:list, type_:type=int) -> None:
         super().__init__(parent)
         self.Type = type_
@@ -152,6 +167,7 @@ class List(_TypeWidget):
         self.Input = self.addWidget(QtWidgets.QLineEdit(self),0,1)
         self.Input.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.Input.setText(", ".join([str(i) for i in default]))
+        self.Input.returnPressed.connect(lambda: self.S_ValueChanged.emit(self.Input.text()))
     
     def get(self) -> list: #TODO: validate input in some way
         return [self.Type(i) for i in self.Input.text().split(",")]
@@ -167,13 +183,16 @@ class List(_TypeWidget):
         self.Input.setText(other.Input.text())
 
 class Str(_TypeWidget):
+    S_ValueChanged:pyqtSignal = pyqtSignal(str)
     def __init__(self, parent: 'QtWidgets.QWidget', displayname:str, default:str) -> None:
         super().__init__(parent)
         self.NameLabel = self.addWidget(QtWidgets.QLabel(displayname, self),0,0)
         self.NameLabel.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,QtWidgets.QSizePolicy.Policy.MinimumExpanding)
-        self.Input = self.addWidget(QtWidgets.QLineEdit(self),0,1)
-        self.Input.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,QtWidgets.QSizePolicy.Policy.MinimumExpanding)
+        #self.Input = self.addWidget(QtWidgets.QLineEdit(self),0,1)
+        self.Input = self.addWidget(AGeWidgets.LineEdit(self),0,1)
+        #self.Input.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.Input.setText(default)
+        self.Input.textChanged.connect(lambda: self.S_ValueChanged.emit(self.Input.text()))
     
     def get(self) -> str:
         return self.Input.text()
@@ -187,7 +206,18 @@ class Str(_TypeWidget):
     def copyFrom(self, other:'Str'):
         self.Input.setText(other.Input.text())
 
+class Name(Str):
+    def __init__(self, parent: 'QtWidgets.QWidget', displayname:str, object_:'object', attribute:'str') -> None:
+        self.objectRef:'weakref.ref[object]' = weakref.ref(object_)
+        self.AttributeName = attribute
+        super().__init__(parent, displayname=displayname, default=getattr(object_,attribute))
+        self.Input.textChanged.connect(lambda: self.updateName())
+    
+    def updateName(self):
+        setattr(self.objectRef(), self.AttributeName, self.get())
+
 class Wildcard(_TypeWidget): #MAYBE: Multiline support?
+    S_ValueChanged:pyqtSignal = pyqtSignal(str)
     def __init__(self, parent: 'QtWidgets.QWidget', displayname:str, default:str) -> None:
         super().__init__(parent)
         self.NameLabel = self.addWidget(QtWidgets.QLabel(f"{displayname}", self),0,0)
@@ -195,6 +225,7 @@ class Wildcard(_TypeWidget): #MAYBE: Multiline support?
         self.Input = self.addWidget(AGeWidgets.LineEdit(self),0,1)
         self.Input.setSizePolicy(QtWidgets.QSizePolicy.Policy.MinimumExpanding,QtWidgets.QSizePolicy.Policy.MinimumExpanding)
         self.Input.setText(default)
+        self.Input.returnPressed.connect(lambda: self.S_ValueChanged.emit(self.Input.text()))
     
     def get(self):
         locals_ = self.getLocals()
@@ -221,6 +252,9 @@ class Wildcard(_TypeWidget): #MAYBE: Multiline support?
 #region Type Helpers
 class DoubleSpinBox(QtWidgets.QDoubleSpinBox):
     def textFromValue(self, value):
-        return QtCore.QLocale().toString(roundToN(value,5), 'g', QtCore.QLocale.FloatingPointShortest)
+        try:
+            return QtCore.QLocale().toString(roundToN(value,5), 'g', QtCore.QLocale.FloatingPointPrecisionOption.FloatingPointShortest)
+        except:
+            return QtCore.QLocale().toString(roundToN(value,5), 'g', QtCore.QLocale.FloatingPointShortest)
 #endregion Type Helpers
 

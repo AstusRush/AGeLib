@@ -623,7 +623,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         Set the globals used in executeCode. If None the globals of this method are loaded.
         """
         # , self.Globals, {"self":self}
-        if Globals == None:
+        if Globals is None:
             self.Globals = globals()
         else:
             self.Globals = Globals
@@ -748,6 +748,7 @@ class InspectWidget(QtWidgets.QWidget):
         """
         TODO: Write Documentation
         """
+        #CRITICAL: numpy arrays can not be displayed properly
         super(InspectWidget, self).__init__(parent)
         #
         self.Globals = globals()
@@ -820,7 +821,7 @@ class InspectWidget(QtWidgets.QWidget):
         Set the globals used in loadMembers. If None the globals of this method are loaded.
         """
         # , self.Globals, {"self":self}
-        if Globals == None:
+        if Globals is None:
             self.Globals = globals()
         else:
             self.Globals = Globals
@@ -897,7 +898,7 @@ class InspectWidget(QtWidgets.QWidget):
     def dir(self, thing=None):
         # type: (typing.Any) -> list[str]
         self._temp_members = []
-        if thing == None:
+        if thing is None:
             exec("_self_self._temp_thing = dir("+self.NameInput.text()+")", self.Globals, {"self":self.window(),"_self_self":self})
         else:
             self._temp_thing = dir(thing)
@@ -1033,7 +1034,7 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         Set the globals used in loadCode. If None the globals of this method are loaded.
         """
         # , self.Globals, {"self":self}
-        if Globals == None:
+        if Globals is None:
             self.Globals = globals()
         else:
             self.Globals = Globals
@@ -1263,7 +1264,7 @@ class exec_Window(AWWF):
         Set the globals used in execute_code and the widgets. If None the globals of this method are loaded.
         """
         # , self.Globals, {"self":self}
-        if Globals == None:
+        if Globals is None:
             self.Globals = globals()
         else:
             self.Globals = Globals

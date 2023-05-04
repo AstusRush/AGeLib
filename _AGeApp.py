@@ -357,9 +357,9 @@ class AGeApp(QtWidgets.QApplication):
             self._setTheme(self.Themes[Name], Name)
         except:
             NC(1,"Exception while loading colour theme",exc=sys.exc_info(),func="AGeApp.setTheme",input=str(Name))
-            
+    
     def addTheme(self, name, theme):
-        # type: (str,typing.Dict[str,typing.Union[typing.Dict[str,QtGui.QBrush],QtGui.QPalette]], bool) -> None
+        # type: (str,typing.Dict[str,typing.Union[typing.Dict[str,QtGui.QBrush],QtGui.QPalette]]) -> None
         """
         Use this method to add custom themes. (They are saved in the dict `AppSpecificThemes`.) \n
         `name` should be a string and `theme` must be a dictionary containing the palettes and brush-dictionaries. \n
@@ -370,6 +370,7 @@ class AGeApp(QtWidgets.QApplication):
         """
         self.AppSpecificThemes[name] = theme
         self.refreshThemeList()
+        self.optionWindow.Input_Field.refreshThemeList() #TODO: This is not pretty. And that widget should really really really get renamed!!
     
     def refreshThemeList(self):
         #TODO: stop overwriting by appending the source in brackets and reversing the load order so that AGeColour.Colours always has priority (And then update doc of `addTheme`)
@@ -720,10 +721,10 @@ class AGeApp(QtWidgets.QApplication):
             for i in w.findChildren(TopBar_Widget):
                 if i.IncludeErrorButton:
                     i.parentWidget().adjustSize()
-        if (N.l()!=4 or self.advanced_mode) and (not N.Flash == self.NCF_NONE) and (not N.Flash == None):
+        if (N.l()!=4 or self.advanced_mode) and (not N.Flash == self.NCF_NONE) and (not N.Flash is None):
             N.Flash.start()
         # REMINDER: Somewhere you need to make the error message "Sorry Dave, I can't let you do this."
-        
+    
     def _listVeryRecentNotifications(self, N):
         # type: (NC) -> tuple[str,QtGui.QIcon]
         """
@@ -779,7 +780,7 @@ class AGeApp(QtWidgets.QApplication):
         Shows a window that can execute code within the program. (This window is very useful for debugging) \n
         Default shortcut (applicationwide): ctrl+T
         """
-        if self.exec_Window == None:
+        if self.exec_Window is None:
             self.exec_Window = exec_Window()
         self.exec_Window.show()
         self.processEvents()
