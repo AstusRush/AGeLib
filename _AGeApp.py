@@ -767,7 +767,7 @@ class AGeApp(QtWidgets.QApplication):
         Shows a window that lists all notifications and displays their details. \n
         Default access: pressing the notification button
         """
-        if self.Notification_Window == None:
+        if self.Notification_Window is None:
             self.Notification_Window = Notification_Window()
         self.Notification_Window.show()
         self.processEvents()
