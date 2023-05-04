@@ -7,6 +7,7 @@ try:
     from typing import TYPE_CHECKING
     if TYPE_CHECKING:
         import typing
+        from ._AGeGW import MplWidget_2D_Plot as MplWidget_2D_Plot_TYPE_HINT
 except:
     pass
 #endregion General Import
@@ -575,6 +576,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         self.Globals = globals()
         self.Locals = {}
         self.LocalsExternal = {}
+        self._LocalsExternal = {}
         self.updateLocals = None
         #
         
@@ -635,6 +637,12 @@ class ConsoleWidget(QtWidgets.QSplitter):
         """
         self.LocalsExternal = Locals
     
+    def _setLocals(self, Locals = {}):
+        """
+        Set the locals used in executeCode.
+        """
+        self._LocalsExternal = Locals
+    
     def setLocalsUpdateFunction(self, function = None):
         """
         Set a function that is called before executing code. This function must return a dictionary containing additional locals that are used when executing the code.
@@ -642,7 +650,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         self.updateLocals = function
     
     def executeCode(self):
-        if self.updateLocals: self.setLocals(self.updateLocals())
+        if self.updateLocals: self._setLocals(self.updateLocals())
         input_text = self.Console.text()
         try:
             if not self.Console.CheckBox.checkState():
@@ -661,6 +669,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
                 "getPath" : lambda mustExist=False: getPath(mustExist) ,
                 })
             self.Locals.update(self.LocalsExternal)
+            self.Locals.update(self._LocalsExternal)
             exec(input_text, self.Globals, self.Locals)
             if not self.Console.CheckBox.checkState():
                 self.Locals = {}
@@ -1176,6 +1185,22 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         r+= "\nsetattr("+target+".__self__,\"_Code_Overwrite_\"+"+target+".__name__, \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\")"
         return r
 
+class PlotWidget(QtWidgets.QWidget):
+    def __init__(self, parent: typing.Optional['QtWidgets.QWidget'] = None) -> None:
+        super().__init__(parent=parent)
+        self.setLayout(QtWidgets.QGridLayout(self))
+        self.layout().setObjectName("gridLayout")
+        self.layout().setContentsMargins(0,0,0,0)
+        self.Button = Button(self, "Make Plot Widget", lambda: self.makePlotWidget())
+        self.layout().addWidget(self.Button)
+    
+    def makePlotWidget(self):
+        from . import _AGeGW
+        self.Plot = _AGeGW.MplWidget_2D_Plot(self, True)
+        self.layout().removeWidget(self.Button)
+        self.Button = None
+        self.layout().addWidget(self.Plot)
+
 #endregion IDE Widgets
 #region IDE Window
 class exec_Window(AWWF):
@@ -1220,7 +1245,8 @@ class exec_Window(AWWF):
             self.OverloadWidget.Console.setFont(font)
             
             # Console #REM#
-            self.ConsoleWidget = ConsoleWidget(self)
+            self.ConsoleWidget = ConsoleWidget(self,["Plot","draw","clear","plot"])
+            self.ConsoleWidget.setLocals({"Plot":lambda:self.Plot,"draw":lambda:self.Plot.draw(),"clear":lambda:self.Plot.clear(),"plot":lambda *args,**wargs:self.Plot.plot(*args,**wargs)})
             self.TabWidget.addTab(self.ConsoleWidget,"Console")
             
             # Inspect #TODO
@@ -1252,6 +1278,11 @@ class exec_Window(AWWF):
             #self.HelpLayout.setObjectName("HelpLayout")
             #self.TabWidget.addTab(self.HelpWidget,"Help")
             
+            # Plot #TODO
+            self.PlotWidget = PlotWidget(self)
+            self.PlotWidget.setObjectName("PlotWidget")
+            self.TabWidget.addTab(self.PlotWidget,"Plot")
+            
             # Other
             self.TabWidget.setCurrentWidget(self.ConsoleWidget)
             
@@ -1281,6 +1312,11 @@ class exec_Window(AWWF):
     def updateFonts(self, font):
         self.ConsoleWidget.Console.setFont(font)
         self.OverloadWidget.Console.setFont(font)
+    
+    @property
+    def Plot(self):
+        #type: () -> MplWidget_2D_Plot_TYPE_HINT
+        return self.PlotWidget.Plot
 
 #endregion IDE Window
 
