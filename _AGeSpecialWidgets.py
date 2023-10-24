@@ -45,7 +45,7 @@ class NotificationsWidget(QtWidgets.QSplitter):
             self.AddNotification(i)
         
         self.NotificationList.currentItemChanged.connect(self.NotificationInfo.ShowNotificationDetails)
-
+    
     def AddNotification(self,Notification):
         # type: (NC) -> None
         try:
@@ -93,7 +93,7 @@ class NotificationInfoWidget(ListWidget):
         item = QtWidgets.QListWidgetItem()
         item.setText("For more information select a notification")
         self.addItem(item)
-
+    
     def keyPressEvent(self,event):
         try:
             if event == QtGui.QKeySequence.Copy:
@@ -110,7 +110,7 @@ class NotificationInfoWidget(ListWidget):
         except:
             NC(lvl=2,exc=sys.exc_info(),win=self.window().windowTitle(),func=str(self.objectName())+".(NotificationInfoWidget).keyPressEvent",input=str(event))
             super(NotificationInfoWidget, self).keyPressEvent(event)
-
+    
     def ShowNotificationDetails(self,Notification):
         try:
             Notification = Notification.data(100)
@@ -146,7 +146,7 @@ class ColourPicker_OLD(QtWidgets.QToolButton): #CLEANUP
         self.clicked.connect(self.PickColour)
         self.setAutoRaise(True)
         self.setAutoFillBackground(True)
-        
+    
     def LoadCurrentPalette(self): #TODO:OVERHAUL
         try:
             if self.Type == "Pen":
@@ -160,13 +160,13 @@ class ColourPicker_OLD(QtWidgets.QToolButton): #CLEANUP
         except:
             self.Colour = QtGui.QColor(255, 0, 255)
         self.ColourSelf()
-        
+    
     def PickColour(self):
         Colour = QtWidgets.QColorDialog.getColor(self.Colour,None,"Choose the {} colour \"{}\"".format(self.Type,self.Element))
         if Colour.isValid(): # If the QColorDialog was aborted by the user the returned colour is invalid
             self.Colour = Colour
         self.ColourSelf()
-        
+    
     def ColourSelf(self):
         palette = QtGui.QPalette()
         brush = QtGui.QBrush(self.Colour)
@@ -282,10 +282,10 @@ class ColourPicker(QtWidgets.QToolButton): #TODO:OVERHAUL
         self.clicked.connect(self.PickColour)
         self.setAutoRaise(True)
         self.setAutoFillBackground(True)
-        
+    
     def getDialogTitle(self):
         return "Choose the {} colour \"{}\"".format(self.Type,self.Element)
-        
+    
     def PickColour(self):
         #TODO: Make a custom widget for this
         # See https://stackoverflow.com/questions/888646/how-could-i-use-the-qcolordialog-inside-another-widget-not-as-a-separate-dialog
@@ -306,7 +306,7 @@ class ColourPicker(QtWidgets.QToolButton): #TODO:OVERHAUL
                 self.Colour = Colour
                 self.Brush = QtGui.QBrush(Colour,self.Brush.style())
         self.ColourSelf()
-        
+    
     def ColourSelf(self):
         palette = QtGui.QPalette()
         brush = self.Brush
@@ -474,7 +474,7 @@ class _PaletteWidget(QtWidgets.QTableWidget): #TODO
             for k,v in self.nameDict.items():
                 Dict[v] = self.getPalette(k)
             return Dict
-            
+    
     def getPalette(self,num=1):
         palette = QtGui.QPalette()
         y = 0
@@ -523,7 +523,7 @@ class _BrushDictWidget(QtWidgets.QTableWidget): #TODO
         super(_BrushDictWidget, self).__init__(parent)
         self.name = name
         self.theme = {}
-        
+    
     def getDict(self,name=""):
         if not name: name = self.name
         Dict = {}
@@ -699,10 +699,10 @@ class OptionsWidget_1_Appearance(QtWidgets.QWidget): #CRITICAL: Conform to namin
         #    self.LexerColours.append(widget)
         #    self.LexerTable.setCellWidget(y,0,widget)
         #    y+=1
-        
+    
     def SetFontFamily(self,Family):
         App().setFont(Family,self.window().TopBar.Font_Size_spinBox.value(),self)
-        
+    
     def LoadCurrentPalette(self):
         """
         Loads the currently active Theme into the Editor. \n

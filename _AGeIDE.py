@@ -603,7 +603,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         self.DisplayWidget.installEventFilter(self)
         self.DisplayWidget_Finder = TextAddon_Finder(self,self.DisplayWidget)
         self.Console.S_Execute.connect(lambda: self.executeCode())
-        
+    
     def eventFilter(self, source, event):
         # type: (QtWidgets.QWidget, QtCore.QEvent|QtGui.QKeyEvent) -> bool
         if event.type() == QtCore.QEvent.FontChange:
@@ -613,7 +613,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
             except: # For old Qt Versions
                 self.DisplayWidget.setTabStopWidth(4 * metrics.averageCharWidth())
         return super(ConsoleWidget, self).eventFilter(source, event)
-        
+    
     def additionalKeywords(self):
         return ["App","NC",
                 "app","window","mw","self","display","dpl","dir","code","help","getPath"
@@ -739,7 +739,7 @@ class InspectWidget(QtWidgets.QWidget):
     # Inspection should contain:
     # o = base().terrain
     # #o = base().terrain.get_root()
-    # 
+    #
     # self.dir(o,"")
     # #self.help(o)
     # #self.code(o)
