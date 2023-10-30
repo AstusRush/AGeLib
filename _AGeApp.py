@@ -96,6 +96,8 @@ class AGeApp(QtWidgets.QApplication):
         self.LastNotificationToolTip = msg
         self.LastNotificationIcon = QtGui.QIcon()
         
+        self._LastCopiedBrush = QtGui.QBrush(QtGui.QColor(0))
+        
         self.MainWindow = None
         self.MW = None
         self.Notification_Window = None
