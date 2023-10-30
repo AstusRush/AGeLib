@@ -129,6 +129,8 @@ class AGeApp(QtWidgets.QApplication):
         self._init_colourAndFont()
         self._generateModuleVersions()
         
+        self.HelpWindow = HelpWindow()
+        
         self.r_init_Options()
         if useExcepthook:
             sys.excepthook = trap_exc_during_debug
@@ -807,8 +809,6 @@ class AGeApp(QtWidgets.QApplication):
         Shows the help window. \n
         Default shortcut (applicationwide): F1
         """
-        if self.HelpWindow is None:
-            self.HelpWindow = HelpWindow()
         self.HelpWindow.showCategory(category)
         self.processEvents()
     

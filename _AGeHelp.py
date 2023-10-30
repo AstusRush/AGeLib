@@ -24,8 +24,8 @@ class HelpTreeWidget(QtWidgets.QTreeWidget):
         self.HelpWindow = helpWindow
         self.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.setAlternatingRowColors(True)
-        self.itemDoubleClicked.connect(lambda item: self.HelpWindow.selectCategory(item))
-        self.itemActivated.connect(lambda item: self.HelpWindow.selectCategory(item)) # triggers with the enter key
+        self.itemDoubleClicked.connect(lambda item: self.HelpWindow.selectCategory(item, False))
+        self.itemActivated.connect(lambda item: self.HelpWindow.selectCategory(item, False)) # triggers with the enter key
     
     def addHelpCategory(self, categoryName, content, subCategories=None, overwrite=False):
         # type: (str,typing.Union[str,QtWidgets.QWidget],typing.Dict[str,typing.Union[str,QtWidgets.QWidget]],bool) -> None
@@ -75,8 +75,7 @@ class HelpTreeWidget(QtWidgets.QTreeWidget):
     
     def getCategoryItem(self, name, obj=None):
         # type: (str,typing.Union[None,HelperTreeItem]) -> typing.Tuple[HelperTreeItem,bool]
-        if not obj: obj = self #TODO: Does not work yet
-        l = self.findItems(name, QtCore.Qt.MatchFlag.MatchFixedString|QtCore.Qt.MatchFlag.MatchCaseSensitive|QtCore.Qt.MatchFlag.MatchExactly)
+        l = self.findItems(name, QtCore.Qt.MatchFlag.MatchFixedString|QtCore.Qt.MatchFlag.MatchCaseSensitive|QtCore.Qt.MatchFlag.MatchExactly|QtCore.Qt.MatchFlag.MatchRecursive)
         if l:
             if len(l) > 1:
                 NC(2,f"Found multiple categories for the term \"{name}\". Returning only the first.",win=self.windowTitle(),func="HelpTreeWidget.getCategoryItem")
@@ -129,7 +128,7 @@ class HelpWindow(AWWF):
         # type: (QtWidgets.QWidget, QtCore.QEvent|QtGui.QKeyEvent) -> bool
         if event.type() == 6: # QtCore.QEvent.KeyPress
             if event.key() == QtCore.Qt.Key_F1:
-                App().showWindow_Help(self.windowTitle())
+                self.selectCategory(*self.HelpCategoryListWidget.getCategoryItem(self.windowTitle()))
                 return True
         return super(HelpWindow, self).eventFilter(source, event) # let the normal eventFilter handle the event
     
@@ -140,13 +139,13 @@ class HelpWindow(AWWF):
         self.positionReset()
         App().processEvents()
         self.activateWindow()
-        #NC(3,category)
-        self.selectCategory(self.HelpCategoryListWidget.getCategoryItem(category)[0])
+        self.selectCategory(*self.HelpCategoryListWidget.getCategoryItem(category))
     
-    def selectCategory(self, item):
-        # type: (HelperTreeItem) -> None
+    def selectCategory(self, item, select=True):
+        # type: (HelperTreeItem,bool) -> None
         if item.data(0,100).lower() == "string":
             self.HelpTextDisplay.setPlainText(item.data(0,101))
+            if select: self.HelpCategoryListWidget.setCurrentItem(item)
         else:
             self.HelpTextDisplay.setPlainText(f"ERROR\nData of type \"{item.data(100)}\" is not supported yet.")
     
