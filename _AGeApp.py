@@ -16,6 +16,7 @@ from . import _AGeWindows
 from ._AGeSpecialWidgets import *
 from ._AGeGW import *
 from ._AGeIDE import *
+from ._AGeHelp import *
 from . import _AGeIDE
 #endregion Import
 
@@ -103,6 +104,7 @@ class AGeApp(QtWidgets.QApplication):
         self.Notification_Window = None
         self.exec_Window = None
         self.optionWindow = None
+        self.HelpWindow = None
         self.Theme = {}
         self.ThemeName = ""
         self.Themes = {}
@@ -226,13 +228,6 @@ class AGeApp(QtWidgets.QApplication):
                     self.showWindow_Options()
                     return True
             if True: #Any Modifier
-                if event.key() == QtCore.Qt.Key_F12:
-                    try:
-                        _ , _ = source.window().winId(), source.window().screen() # Check if this exists #MAYBE: Use hasattr? Would probably be more readable... And then use if/else instead of try/except
-                        self.makeScreenshot(source.window())
-                    except:
-                        self.makeScreenshot(source)
-                    return True
                 if event.key() == QtCore.Qt.Key_F9: # FEATURE: HelpWindow: Inform the User that this feature exists. Make Help window that is opened with F1
                     for w in self.topLevelWidgets():
                         if w.isVisible():
@@ -240,6 +235,13 @@ class AGeApp(QtWidgets.QApplication):
                                 w.positionReset()
                             except:
                                 pass
+                    return True
+                if event.key() == QtCore.Qt.Key_F12:
+                    try:
+                        _ , _ = source.window().winId(), source.window().screen() # Check if this exists #MAYBE: Use hasattr? Would probably be more readable... And then use if/else instead of try/except
+                        self.makeScreenshot(source.window())
+                    except:
+                        self.makeScreenshot(source)
                     return True
         elif event.type() == NotificationEvent.EVENT_ID:
             self._notifyUser(event.N)
@@ -301,7 +303,7 @@ class AGeApp(QtWidgets.QApplication):
             event = QtCore.QEvent(QtCore.QEvent.Clipboard)
             QtWidgets.QApplication.sendEvent(clipboard, event)
             self.processEvents()
-            
+    
     def toggleAdvancedMode(self, checked):
         # type: (bool) -> None
         """
@@ -798,6 +800,16 @@ class AGeApp(QtWidgets.QApplication):
         self.optionWindow.show()
         self.processEvents()
         self.optionWindow.activateWindow()
+        self.processEvents()
+    
+    def showWindow_Help(self, category=""):
+        """
+        Shows the help window. \n
+        Default shortcut (applicationwide): F1
+        """
+        if self.HelpWindow is None:
+            self.HelpWindow = HelpWindow()
+        self.HelpWindow.showCategory(category)
         self.processEvents()
     
  # ---------------------------------- Files and Folders ----------------------------------

@@ -45,7 +45,7 @@ class NotificationsWidget(QtWidgets.QSplitter):
             self.AddNotification(i)
         
         self.NotificationList.currentItemChanged.connect(self.NotificationInfo.ShowNotificationDetails)
-
+    
     def AddNotification(self,Notification):
         # type: (NC) -> None
         try:
@@ -713,10 +713,10 @@ class OptionsWidget_1_Appearance(QtWidgets.QWidget): #CRITICAL: Conform to namin
         #    self.LexerColours.append(widget)
         #    self.LexerTable.setCellWidget(y,0,widget)
         #    y+=1
-        
+    
     def SetFontFamily(self,Family):
         App().setFont(Family,self.window().TopBar.Font_Size_spinBox.value(),self)
-        
+    
     def LoadCurrentPalette(self):
         """
         Loads the currently active Theme into the Editor. \n
