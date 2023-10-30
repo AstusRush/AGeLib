@@ -201,7 +201,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.installEventFilter(self)
-
+    
     def keyPressEvent(self,event):
         try:
             if event == QtGui.QKeySequence.Copy:
