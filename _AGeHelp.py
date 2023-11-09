@@ -100,6 +100,8 @@ class HelpTreeWidget(QtWidgets.QTreeWidget):
         # type: (str) -> typing.List[HelperTreeItem]
         return self.findItems(name, QtCore.Qt.MatchFlag.MatchFixedString|QtCore.Qt.MatchFlag.MatchCaseSensitive|QtCore.Qt.MatchFlag.MatchExactly|QtCore.Qt.MatchFlag.MatchRecursive)
 
+class HelpTextDisplay(QtWidgets.QPlainTextEdit): pass
+
 #endregion Help Widgets
 #region Help Window
 class HelpWindow(AWWF):
@@ -115,7 +117,7 @@ class HelpWindow(AWWF):
             
             self.Splitter = QtWidgets.QSplitter(self)
             self.HelpCategoryListWidget = HelpTreeWidget(self.Splitter, self)
-            self.HelpTextDisplay = QtWidgets.QPlainTextEdit(self.Splitter)
+            self.HelpDisplay = HelpTextDisplay(self.Splitter)
             self.setCentralWidget(self.Splitter)
             help_text = "This is the help window.\nYou can open this window by pressing F1.\nDouble-click an item on the left to display the help page for it."
             if True: # Normal
@@ -148,12 +150,13 @@ class HelpWindow(AWWF):
     
     def selectCategory(self, item, select=True):
         # type: (HelperTreeItem,bool) -> None
-        #IMPROVE: This currently flickers
-        #IMPROVE: Since HelpTextDisplay is by far the most common we do a lot of unnecessary work by deleting it all the time
-        self.clearWidgets()
+        #IMPROVE: This currently flickers when item.data(0,100) is or was "widget"
+        if not isinstance(self.HelpDisplay, HelpTextDisplay):
+            self.clearWidgets()
         if item.data(0,100).lower() == "string":
-            self.HelpTextDisplay = QtWidgets.QPlainTextEdit(self.Splitter)
-            self.HelpTextDisplay.setPlainText(item.data(0,101))
+            if not isinstance(self.HelpDisplay, HelpTextDisplay):
+                self.HelpDisplay = HelpTextDisplay(self.Splitter)
+            self.HelpDisplay.setPlainText(item.data(0,101))
             if select:
                 self.HelpCategoryListWidget.collapseAll()
                 self.HelpCategoryListWidget.setFocus()
@@ -163,7 +166,8 @@ class HelpWindow(AWWF):
                 item.setExpanded(True)
                 self.HelpCategoryListWidget.setCurrentItem(item)
         elif item.data(0,100).lower() == "widget":
-            widget = item.data(0,101)(self.Splitter) #type: QtWidgets.QWidget
+            self.clearWidgets()
+            self.HelpDisplay = item.data(0,101)(self.Splitter) #type: QtWidgets.QWidget
             if select:
                 self.HelpCategoryListWidget.collapseAll()
                 self.HelpCategoryListWidget.setFocus()
@@ -173,14 +177,16 @@ class HelpWindow(AWWF):
                 item.setExpanded(True)
                 self.HelpCategoryListWidget.setCurrentItem(item)
         else:
-            self.HelpTextDisplay = QtWidgets.QPlainTextEdit(self.Splitter)
-            self.HelpTextDisplay.setPlainText(f"ERROR\nData of type \"{item.data(100)}\" is not supported yet.")
+            if not isinstance(self.HelpDisplay, HelpTextDisplay):
+                self.HelpDisplay = HelpTextDisplay(self.Splitter)
+            self.HelpDisplay.setPlainText(f"ERROR\nData of type \"{item.data(100)}\" is not supported yet.")
     
     def addHelpCategory(self, categoryName, content, subCategories=None, overwrite=False):
         # type: (str,typing.Union[str,typing.Callable[[QtWidgets.QWidget],QtWidgets.QWidget]],typing.Dict[str,typing.Union[str,typing.Callable[[QtWidgets.QWidget],QtWidgets.QWidget]]],bool) -> None
         self.HelpCategoryListWidget.addHelpCategory(categoryName, content, subCategories, overwrite)
     
     def clearWidgets(self):
+        self.HelpDisplay = None
         for i in range(self.Splitter.count()):
             widget = self.Splitter.widget(i)
             if widget != self.HelpCategoryListWidget:
