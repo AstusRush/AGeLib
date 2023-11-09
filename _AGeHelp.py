@@ -117,7 +117,7 @@ class HelpWindow(AWWF):
             self.HelpCategoryListWidget = HelpTreeWidget(self.Splitter, self)
             self.HelpTextDisplay = QtWidgets.QPlainTextEdit(self.Splitter)
             self.setCentralWidget(self.Splitter)
-            help_text = "This is the help window.\nYou can open this window by pressing F1.\nDouble-click an item on the right to display the help page for it."
+            help_text = "This is the help window.\nYou can open this window by pressing F1.\nDouble-click an item on the left to display the help page for it."
             if True: # Normal
                 self.addHelpCategory(self.windowTitle(),help_text)
             else: # Test
