@@ -286,12 +286,12 @@ class ColourPicker(QtWidgets.QToolButton): #TODO:OVERHAUL
     
     def eventFilter(self, source, event):
         if event.type() == QtCore.QEvent.MouseButtonPress:
-            if event.button() == QtCore.Qt.RightButton:
-                if event.modifiers() == QtCore.Qt.ControlModifier:
+            if event.modifiers() == QtCore.Qt.ShiftModifier: # Shortcuts like in Factorio
+                if event.button() == QtCore.Qt.LeftButton:
                     self.Brush = QtGui.QBrush(App()._LastCopiedBrush)
                     self.Colour = self.Brush.color()
                     self.ColourSelf()
-                else:
+                elif event.button() == QtCore.Qt.RightButton:
                     App()._LastCopiedBrush = self.Brush
         return super(ColourPicker, self).eventFilter(source, event)
     
