@@ -655,6 +655,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         try:
             if not self.Console.CheckBox.checkState():
                 self.Locals = {}
+            self.Locals.update(self.Globals)
             # Set app and window for the local dictionary so that they can be used in the execution
             self.Locals.update({
                 "app"     : App() ,
@@ -670,7 +671,9 @@ class ConsoleWidget(QtWidgets.QSplitter):
                 })
             self.Locals.update(self.LocalsExternal)
             self.Locals.update(self._LocalsExternal)
-            exec(input_text, self.Globals, self.Locals)
+            #NOTE: Having locals and globals be the same dictionary allows importing modules and then using them in functions
+            # as well as using global variables in function, etc.
+            exec(input_text, self.Locals, self.Locals)
             if not self.Console.CheckBox.checkState():
                 self.Locals = {}
         except:
