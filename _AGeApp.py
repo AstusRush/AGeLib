@@ -804,8 +804,8 @@ class AGeApp(QtWidgets.QApplication):
         self.optionWindow.activateWindow()
         self.processEvents()
     
-    def showWindow_Help(self, category=""):
-        #type: (typing.Union[str,typing.List[str]]) -> None
+    def showWindow_Help(self, category="", openWindow=True):
+        #type: (typing.Union[str,typing.List[str]],bool) -> None
         """
         Shows the help window. \n
         Default shortcut (applicationwide): F1 \n
@@ -813,7 +813,7 @@ class AGeApp(QtWidgets.QApplication):
         (or a list of strings to describe sub entries or sub-sub-entries, etc)
         which will be displayed to the user
         """
-        self.HelpWindow.showCategory(category)
+        self.HelpWindow.showCategory(category,openWindow=openWindow)
         self.processEvents()
     
  # ---------------------------------- Files and Folders ----------------------------------

@@ -153,14 +153,15 @@ class HelpWindow(AWWF):
                 return True
         return super(HelpWindow, self).eventFilter(source, event) # let the normal eventFilter handle the event
     
-    def showCategory(self, category = ""):
-        #type: (typing.Union[str,typing.List[str]]) -> None
+    def showCategory(self, category = "", openWindow=True):
+        #type: (typing.Union[str,typing.List[str]], bool) -> None
         if category=="": category = "No Category"
-        self.show()
-        App().processEvents()
-        self.positionReset()
-        App().processEvents()
-        self.activateWindow()
+        if openWindow:
+            self.show()
+            App().processEvents()
+            self.positionReset()
+            App().processEvents()
+            self.activateWindow()
         self.selectCategory(*self.HelpCategoryListWidget.getCategoryItem(category))
     
     def selectCategory(self, item, select=True):
