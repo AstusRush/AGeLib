@@ -291,7 +291,7 @@ class AGeApp(QtWidgets.QApplication):
         clipboard = QtWidgets.QApplication.clipboard()
         if platform.system() == 'Windows':
             try:
-                import win32clipboard
+                import win32clipboard #type: ignore
                 text = clipboard.text()
                 win32clipboard.OpenClipboard()
                 win32clipboard.EmptyClipboard()
@@ -300,8 +300,8 @@ class AGeApp(QtWidgets.QApplication):
             except:
                 print("Could not save clipboard data:")
                 ExceptionOutput(sys.exc_info())
-        else: #FEATURE: Find a linux version of win32clipboard
-            print("Clipboard is only saved if a clipboard manager is installed due to OS limitations.")
+        else:
+            #print("Clipboard is only saved if a clipboard manager is installed due to OS limitations.")
             event = QtCore.QEvent(QtCore.QEvent.Clipboard)
             QtWidgets.QApplication.sendEvent(clipboard, event)
             self.processEvents()
