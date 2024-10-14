@@ -808,7 +808,10 @@ class AGeApp(QtWidgets.QApplication):
         #type: (typing.Union[str,typing.List[str]]) -> None
         """
         Shows the help window. \n
-        Default shortcut (applicationwide): F1
+        Default shortcut (applicationwide): F1 \n
+        category can be the name of a help entry
+        (or a list of strings to describe sub entries or sub-sub-entries, etc)
+        which will be displayed to the user
         """
         self.HelpWindow.showCategory(category)
         self.processEvents()
