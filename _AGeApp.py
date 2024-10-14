@@ -805,6 +805,7 @@ class AGeApp(QtWidgets.QApplication):
         self.processEvents()
     
     def showWindow_Help(self, category=""):
+        #type: (typing.Union[str,typing.List[str]]) -> None
         """
         Shows the help window. \n
         Default shortcut (applicationwide): F1
