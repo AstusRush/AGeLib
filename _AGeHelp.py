@@ -65,7 +65,14 @@ class HelpTreeWidget(QtWidgets.QTreeWidget):
             item = self._prepareItem(k,v)
             parent_item[0].addChild(item)
     
-    def _prepareItem(self, categoryName, content):
+    def addSubCategorySubCategories(self, parent_item, subCategories):
+        # type: (HelperTreeItem,typing.Dict[str,typing.Union[str,typing.Callable[[QtWidgets.QWidget],QtWidgets.QWidget]]]) -> None
+        for k,v in subCategories.items():
+            if k == "_TOP_": continue
+            item = self._prepareItem(k,v)
+            parent_item.addChild(item)
+    
+    def _prepareItem(self, categoryName, content, allowDict=True):
         # type: (str,str,typing.Union[str,typing.Callable[[QtWidgets.QWidget],QtWidgets.QWidget]]) -> HelperTreeItem
         item = HelperTreeItem()
         item.setText(0,categoryName)
@@ -75,6 +82,9 @@ class HelpTreeWidget(QtWidgets.QTreeWidget):
         elif isinstance(content, str):
             item.setData(0,100, "string")
             item.setData(0,101, content)
+        elif isinstance(content, dict) and allowDict:
+            item = self._prepareItem(categoryName, content["_TOP_"], allowDict=False)
+            self.addSubCategorySubCategories(item, content)
         else:
             errMsg = f"Could not register help category \"{categoryName}\" with content of type \"{type(content)}\""
             NC(2,errMsg,win=self.windowTitle(),func="HelpTreeWidget.addHelpCategory")
@@ -120,13 +130,22 @@ class HelpWindow(AWWF):
             self.HelpDisplay = HelpTextDisplay(self.Splitter)
             self.setCentralWidget(self.Splitter)
             help_text = "This is the help window.\nYou can open this window by pressing F1.\nDouble-click an item on the left to display the help page for it."
-            if True: # Normal
+            if 0: # Normal
                 self.addHelpCategory(self.windowTitle(),help_text)
             else: # Test
                 self.addHelpCategory(self.windowTitle(),help_text,{"Test":"Test Text Pre"})
                 self.addHelpCategory(self.windowTitle(),help_text,{"Test":"Test Text","Test Widget":lambda p: Button(p,"TEST")},overwrite=True)
                 self.addHelpCategory("Test Category","Test Text")
                 self.addHelpCategory("Test Category","Test Text2",overwrite=True)
+                self.addHelpCategory("Test Category 2","Test Text 2",{"Top Test":{"_TOP_":"Top Test","sub":"SubTestText"},"Other":"Other Text"})
+                self.addHelpCategory("Test","Test Text",{"Sub Hack":"This is cool"})
+                #CRITICAL: This is a mess... We now have 2 ways to add subcategories but both are suboptimal
+                # CUrrently getCategoryItem searches the entire tree which means that each item name can only occur once which is bad
+                # We need to allow duplicate names in the tree but need to enforce uniqueness amongst a each layer in each branch
+                # This will break the hacky way to add sub sub categories
+                # But the new way needs to be adapted to enforce that uniqueness and support overwrites
+                # But the old method to add sub categories should be replaced the new sub-sub-category mechanism since it will be superfluous
+                # This means quite some rework...
             self.installEventFilter(self)
         except:
             NC(exc=sys.exc_info(),win=self.windowTitle(),func="HelpWindow.__init__")
