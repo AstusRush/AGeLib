@@ -1318,16 +1318,16 @@ class exec_Window(AWWF):
         if event.type() == 6: # QtCore.QEvent.KeyPress
             if event.key() == QtCore.Qt.Key_F1:
                 if self.InitialHelpWindowOpening:
-                    App().showWindow_Help(self.windowTitle())
+                    App().showWindow_Help(["AGeLib",self.windowTitle()])
                     self.InitialHelpWindowOpening = False
-                else: App().showWindow_Help([self.windowTitle(),self.TabWidget.tabText(self.TabWidget.currentIndex())])
+                else: App().showWindow_Help(["AGeLib",self.windowTitle(),self.TabWidget.tabText(self.TabWidget.currentIndex())])
                 return True
         return super(exec_Window, self).eventFilter(source, event) # let the normal eventFilter handle the event
     
     def setupHelpTexts(self):
         self.InitialHelpWindowOpening = True
         help_text = "This is the AGeIDE.\nThis Window allows full developer access to the running program." #TODO: More Text
-        App().HelpWindow.addHelpCategory(self.windowTitle(),{"_TOP_":help_text,
+        App().HelpWindow.addHelpCategory("AGeLib",{self.windowTitle():{"_TOP_":help_text,
             "Overload": "The Overload tab allows you to overload any method in the current program.\n"+
                         "The changes are only temporary and are lost when the program ends.", #TODO: More Text; describe behaviour; describe operation modes (class/instance,overwrite/new)
             "Console" : "In the Console tab you can execute code that can interact with the program.", #TODO: More Text; describe namespace behaviour; describe build-in commands like dpl()
@@ -1335,7 +1335,7 @@ class exec_Window(AWWF):
             "Options" : "The Options tab currently only lets you change the font of the code editor.",
             "Plot"    : "The Plot tab allows you to display matplotlib plots.\nTo activate the plot initially you have to press the button to create the plot widget.\n"+
                         "Once the widget is created you have access to the AGeGW.MplWidget_2D_Plot object under the name `Plot` in the Console tab.", #TODO: Describe available methods and add some example code
-            })
+            }})
     
     def setGlobals(self, Globals = None):
         """

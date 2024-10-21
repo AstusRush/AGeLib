@@ -131,9 +131,10 @@ class HelpWindow(AWWF):
             self.HelpCategoryListWidget = HelpTreeWidget(self.Splitter, self)
             self.HelpDisplay = HelpTextDisplay(self.Splitter)
             self.setCentralWidget(self.Splitter)
-            help_text = "This is the help window.\nYou can open this window by pressing F1.\nDouble-click an item on the left to display the help page for it."
+            AGeLibHelpText = "This program is based upon the Astus General Library (AGeLib)." #TODO: More helptext to AGeLib
+            help_text = "This is the help window.\nYou can open this window by pressing F1.\nSelect an item on the left to display the help page for it."
             if True: # Normal
-                self.addHelpCategory(self.windowTitle(),help_text)
+                self.addHelpCategory("AGeLib",{"_TOP_":AGeLibHelpText,self.windowTitle():help_text})
             else: # Test
                 self.addHelpCategory(self.windowTitle(),{"_TOP_":help_text,"Test":"Test Text Pre"})
                 self.addHelpCategory(self.windowTitle(),{"_TOP_":help_text,"Test":"Test Text","Test Widget":lambda p: Button(p,"TEST")},overwrite=True)
@@ -149,7 +150,7 @@ class HelpWindow(AWWF):
         # type: (QtWidgets.QWidget, QtCore.QEvent|QtGui.QKeyEvent) -> bool
         if event.type() == 6: # QtCore.QEvent.KeyPress
             if event.key() == QtCore.Qt.Key_F1:
-                self.selectCategory(*self.HelpCategoryListWidget.getCategoryItem(self.windowTitle()))
+                self.selectCategory(*self.HelpCategoryListWidget.getCategoryItem(["AGeLib",self.windowTitle()]))
                 return True
         return super(HelpWindow, self).eventFilter(source, event) # let the normal eventFilter handle the event
     
