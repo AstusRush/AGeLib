@@ -97,7 +97,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
         self.hasFloater = False
         self._rectToMultiLast = timetime()
         super(CodeEditorWidget, self).__init__(parent)
-        self.QScintilla = QSciImported
+        self.QScintilla = QSciImported #CRITICAL: Setting this to False leads to exceptions getting thrown
         self.hasExecuteButton = ExecuteButton
         self.hasCheckBox = CheckBox
         self.setLayout(QtWidgets.QGridLayout(self))
@@ -240,6 +240,16 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             raise Exception("Current editor is not self.Editor but self.QScintilla is false... How can this be? Which editor are you using?!")
         #CRITICAL: Instead of changing all tabs, only tabs between "\n" and the first non-space-charater should be converted (using a regular expression that searches for tabs between those but accepting tabs and space in between)
         return text.replace("\t","    ")
+    
+    def setEditorFocus(self):
+        if self.EContainer.currentWidget() == self.Editor_Finder:
+            self.Editor.setFocus()
+            self.Editor.moveCursor(QtGui.QTextCursor.MoveOperation.End)
+        elif self.QScintilla:
+            self.EditorSc.setFocus()
+            self.EditorSc.SendScintilla(Qsci.QsciCommand.DocumentEnd)
+        else:
+            raise Exception("Current editor is not self.Editor but self.QScintilla is false... How can this be? Which editor are you using?!")
     
     def toPlainText(self):
         return self.text()
@@ -1359,6 +1369,10 @@ class exec_Window(AWWF):
     def updateFonts(self, font):
         self.ConsoleWidget.Console.setFont(font)
         self.OverloadWidget.Console.setFont(font)
+    
+    def activateWindow(self, *args):
+        super().activateWindow(*args)
+        self.ConsoleWidget.Console.setEditorFocus()
     
     @property
     def Plot(self):
