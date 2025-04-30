@@ -94,6 +94,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
                     ):
         if additionalKeywords is None:
             additionalKeywords = []
+        additionalKeywords = list(set(additionalKeywords).union([i for i in list(builtins.__dict__.keys()) if not i.startswith("__")],["match","case"]))
         self.hasFloater = False
         self._rectToMultiLast = timetime()
         super(CodeEditorWidget, self).__init__(parent)
@@ -412,9 +413,10 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
 #endregion IDE General Widgets
 #region IDE Helper Widgets
 class _InspectWidget_memberItem(QtWidgets.QWidget):
-    def __init__(self,item,InspectWidget,parent=None):
+    def __init__(self,item,InspectWidget:'InspectWidget',fullName,parent=None):
         super(_InspectWidget_memberItem, self).__init__(parent)
-        self.string, self.item = item
+        self.String, self.Item = item
+        self.FullName:'str' = fullName
         self.RowHeightFactor = 1
         self.RowHeightSpacer = 10
         self.InspectWidget = InspectWidget
@@ -424,17 +426,17 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
         self.layout().setSpacing(0)
         #
         self._t_ret = None
-        self.buttons = []
+        self.Buttons = []
         self.RowHeight = QtGui.QFontMetrics(self.font()).height()*self.RowHeightFactor + self.RowHeightSpacer
         self.setFixedHeight(self.RowHeight)
         #
-        self.label = QtWidgets.QLabel(self.string,self)
+        self.label = QtWidgets.QLabel(self.String,self)
         self.label.setFixedHeight(self.RowHeight)
         self.layout().addWidget(self.label,0,0)
         #
         #self.Button_Info = Button(self,"I",lambda: self.showInfo())
         self.Button_Info = QtWidgets.QToolButton(self)
-        self.buttons.append(self.Button_Info)
+        self.Buttons.append(self.Button_Info)
         self.Button_Info.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MessageBoxInformation))
         self.Button_Info.setFixedSize(self.RowHeight,self.RowHeight)
         self.Button_Info.setFocusPolicy(QtCore.Qt.NoFocus)
@@ -443,7 +445,7 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
         self.layout().addWidget(self.Button_Info,0,100)
         #
         self.Button_Zoom = QtWidgets.QToolButton(self)
-        self.buttons.append(self.Button_Zoom)
+        self.Buttons.append(self.Button_Zoom)
         self.Button_Zoom.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ArrowUp))
         self.Button_Zoom.setFixedSize(self.RowHeight,self.RowHeight)
         self.Button_Zoom.setFocusPolicy(QtCore.Qt.NoFocus)
@@ -459,9 +461,9 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
         #self.Button_Help = QtWidgets.QToolButton(self)
         #
         try:
-            if hasattr(self.item,"__call__"):
+            if hasattr(self.Item,"__call__"):
                 self.Button_Call = QtWidgets.QToolButton(self)
-                self.buttons.append(self.Button_Call)
+                self.Buttons.append(self.Button_Call)
                 self.Button_Call.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ArrowRight))
                 self.Button_Call.setFixedSize(self.RowHeight,self.RowHeight)
                 self.Button_Call.setFocusPolicy(QtCore.Qt.NoFocus)
@@ -475,10 +477,10 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
     
     def showInfo(self):
         try:
-            text = f"{self.string}\nType: {type(self.item)}\n{self.stringRep(Format = True)}"
+            text = f"{self.String}\nType: {type(self.Item)}\n{self.stringRep(Format = True)}"
             try:
-                if self.item.__doc__ != "":
-                    text += f"\nDoc:\n{self.item.__doc__}"
+                if self.Item.__doc__ != "":
+                    text += f"\nDoc:\n{self.Item.__doc__}"
             except:
                 pass
             self.InspectWidget.DisplayWidget.setPlainText(text)
@@ -488,7 +490,7 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
     def stringRep(self, item = "no strItem given", Format = True): #TODO: Improve Formatting
         try:
             if item == "no strItem given":
-                item = self.item
+                item = self.Item
             strItem = str(item)
             if len(strItem) >= 4e6:
                 # if the String is too big we don't bother processing it
@@ -511,7 +513,7 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
                 if Format and (len(string)>=40 or len(string.splitlines())>1): string = "\n"+string+"\n\n\n"
         except:
             NC(2,"Error while extracting string",exc=True)
-            string = str(self.item)
+            string = str(self.Item)
             if Format: string = "\n"+string+"\n\n\n"
         if Format: string = "\nString Representation: "+string
         return string
@@ -523,11 +525,11 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
         pass
     
     def zoom(self):
-        self.InspectWidget.zoom(self.string)
+        self.InspectWidget.zoom(self.String)
     
     def callMethod(self):
         proceed = False#QtWidgets.QMessageBox.question(None,"Are you sure",f"Do you really want to call the method \"{self.string}\"?") == QtWidgets.QMessageBox.Yes
-        args, proceed = QtWidgets.QInputDialog.getText(self,"Are you sure?",f"Do you really want to call the method \"{self.string}\"?\nIf so, do you want to call it with arguments?")
+        args, proceed = QtWidgets.QInputDialog.getText(self,"Are you sure?",f"Do you really want to call the method \"{self.String}\"?\nIf so, do you want to call it with arguments?")
         if not proceed: return
         try:
             exec(f"_self_self._t_ret = _self_self.item({args})", self.InspectWidget.Globals, {"self":self.InspectWidget.window(),"_self_self":self})
@@ -535,7 +537,7 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
         except:
             self._t_ret = sys.exc_info()
         try:
-            text = f"{self.string}\nReturn Type: {type(self._t_ret)}\n{self.stringRep(item = self._t_ret, Format = True)}"
+            text = f"{self.String}\nReturn Type: {type(self._t_ret)}\n{self.stringRep(item = self._t_ret, Format = True)}"
             self.InspectWidget.DisplayWidget.setPlainText(text)
         except:
             NC(1,"Could not show return value",exc=True)
@@ -546,7 +548,7 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
             self.RowHeight = QtGui.QFontMetrics(self.font()).height()*self.RowHeightFactor + self.RowHeightSpacer
             self.setFixedHeight(self.RowHeight)
             self.label.setFixedHeight(self.RowHeight)
-            for i in self.buttons:
+            for i in self.Buttons:
                 i.setFixedSize(self.RowHeight,self.RowHeight)
         return super(_InspectWidget_memberItem, self).eventFilter(source, event)
 
@@ -746,6 +748,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         return self.Console.toPlainText()
 
 class InspectWidget(QtWidgets.QWidget):
+    #TODO: Add import widget that allows importing modules to inspect them (and handles this for the MethodBrowserWidget to update the OverloadWidget accordingly)
     #TODO: Add new tab for inspection of items with a gui for self.help, self.dir and self.code
     #TODO: Make Documentation that is accessible in the Window (MAYBE: New tab with explanations)
     # ### InspectWidget ###
@@ -901,7 +904,7 @@ class InspectWidget(QtWidgets.QWidget):
     def displayMembers(self):
         for member in self._temp_members_dict.items():
             itemN = QtWidgets.QListWidgetItem()
-            widget = _InspectWidget_memberItem(member,self,self.MemberList)
+            widget = _InspectWidget_memberItem(member,self,self.NameInput.text()+"."+member[0] if self.NameInput.text() else member[0],self.MemberList)
             itemN.setSizeHint(widget.sizeHint())
             self.MemberList.addItem(itemN)
             self.MemberList.setItemWidget(itemN, widget)
@@ -967,10 +970,10 @@ class InspectWidget(QtWidgets.QWidget):
             i.setSizeHint(self.MemberList.itemWidget(i).sizeHint())
 
 
-class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and add functions
-    method: types.MethodType
-    target: types.MethodType
-    targetObject: object
+class OverloadWidget(QtWidgets.QWidget): #FEATURE: Add ability to overload and add functions
+    Method: types.MethodType
+    Target: types.MethodType
+    TargetObject: object
     Static: bool
     Static_ClassOverwrite: bool
     def __init__(self, parent = None, method = None, name = "", _class = None):
@@ -988,11 +991,12 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         self.layout().setObjectName("gridLayout")
         self.layout().setContentsMargins(0,0,0,0)
         self._TempCode = ""
-        self.lastHighlightColour = "Red"
+        self.LastHighlightColour = "Red"
         self.Static = not method is None
         self.Static_ClassOverwrite = not _class is None
         self.MethodGlobals = globals()
         self.Globals = globals()
+        self.MethodBrowserWindow = None
         if self.Static:
             if name == "":
                 try:
@@ -1000,39 +1004,57 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
                 except:
                     NC(2,"Could not load name",exc=sys.exc_info(),input=method)
             self.Label = QtWidgets.QLabel(name,self)
-            self.layout().addWidget(self.Label,0,0)
-            self.method = method
-            self.target = method
+            self.layout().addWidget(self.Label,0,0,1,2)
+            self.Method = method
+            self.Target = method
             if _class is None:
-                self.targetObject = self.target.__self__
+                self.TargetObject = self.Target.__self__
             else:
-                self.targetObject = _class
+                self.TargetObject = _class
         else:
+            self.BrowseButton = Button(self,"Browse",lambda: self.browse())
+            self.BrowseButton.setToolTip(self.applyCode.__doc__)
+            self.BrowseButton.setToolTipDuration(0)
+            self.layout().addWidget(self.BrowseButton,0,0)
             self.NameInput = LineEdit(self)
             #TODO: Add tooltip that BRIEFLY explains how to input methods.
             # The tooltip should NOT mention that the code code is executed in this widget and not in the window.
             # However the HELP tab of the code execution window SHOULD mention this and SHOULD give a more complete explanation.
-            self.layout().addWidget(self.NameInput,0,0)
+            self.layout().addWidget(self.NameInput,0,1)
             self.NameInput.returnPressed.connect(lambda: self.loadCode())
-            self.method = None
-            self.target = None
-            self.targetObject = None
-        self.loadButton = Button(self,"Load Code",lambda: self.loadCode())
-        self.layout().addWidget(self.loadButton,0,1)
-        self.applyButton = Button(self,"Apply Code")
-        self.applyButton.setToolTip(self.applyCode.__doc__)
-        self.applyButton.setToolTipDuration(0)
-        self.layout().addWidget(self.applyButton,0,2)
+            self.Method = None
+            self.Target = None
+            self.TargetObject = None
+        self.LoadButton = Button(self,"Load Code",lambda: self.loadCode())
+        self.layout().addWidget(self.LoadButton,0,2)
+        self.ApplyButton = Button(self,"Apply Code")
+        self.ApplyButton.setToolTip(self.applyCode.__doc__)
+        self.ApplyButton.setToolTipDuration(0)
+        self.layout().addWidget(self.ApplyButton,0,3)
         self.Console = CodeEditorWidget(self,additionalKeywords=["self","NC"],ExecuteButton=False)
-        self.layout().addWidget(self.Console, 1, 0, 1, 3)
-        self.applyButton.clicked.connect(lambda: self.Console.sendExecute())
+        self.layout().addWidget(self.Console, 1, 0, 1, 4)
+        self.ApplyButton.clicked.connect(lambda: self.Console.sendExecute())
         self.Console.S_Execute.connect(lambda: self.applyCode())
         if self.Static:
             self.loadCode()
         else:
             self.highlightInput("Red")
             self.NameInput.textChanged.connect(lambda: self.highlightInput("Yellow"))
-            App().S_ColourChanged.connect(lambda: self.highlightInput(self.lastHighlightColour))
+            App().S_ColourChanged.connect(lambda: self.highlightInput(self.LastHighlightColour))
+    
+    def browse(self):
+        try:
+            if self.MethodBrowserWindow == None:
+                self.MethodBrowserWindow = MethodBrowserWindow(self)
+            self.MethodBrowserWindow.InspectWidget.setGlobals(self.Globals)
+            self.MethodBrowserWindow.show()
+            App().processEvents()
+            self.MethodBrowserWindow.positionReset()
+            App().processEvents()
+            self.MethodBrowserWindow.activateWindow()
+        except:
+            self.MethodBrowserWindow = None
+            NC(exc=True)
     
     def highlightInput(self,c="Red"):
         # type: (str) -> None
@@ -1041,7 +1063,7 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         This makes it easy to see if it is save to apply the code. \n
         The code can be applied regardless of the colour to not hinder creativity.
         """
-        self.lastHighlightColour = c
+        self.LastHighlightColour = c
         if not self.Static:
             pal = QtGui.QPalette(self.palette())
             brush = App().PenColours[c]
@@ -1060,25 +1082,33 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
             self.Globals = globals()
         else:
             self.Globals = Globals
+        
+        if self.MethodBrowserWindow != None:
+            self.MethodBrowserWindow.InspectWidget.setGlobals(self.Globals)
+        
         #TODO: Update autocomplete
     
     def loadCode(self):
         """
         Loads the code of the method that is named in the NameInput and displays it. \n
         Also loads the globals that are connected to this method. \n
-        If this was successful the outline of the NameInput turns green.
+        If this was successful the outline of the NameInput turns green. \n
+        Returns True if successful, else False
         """
         try:
             if not self.Static:
-                exec("_self_self.method = "+self.NameInput.text(), self.Globals, {"self":self.window(),"_self_self":self})
+                exec("_self_self.Method = "+self.NameInput.text(), self.Globals, {"self":self.window(),"_self_self":self})
             try:
-                if not self.Static_ClassOverwrite:
-                    exec("_self_self._TempCode = \"\\n\"+_self_self.method.__self__._Code_Overwrite_"+self.method.__name__ , self.Globals, {"self":self.window(),"_self_self":self})
-                else:
-                    exec("_self_self._TempCode = \"\\n\"+_self_self.targetObject._Code_Overwrite_"+self.method.__name__ , self.Globals, {"self":self.window(),"_self_self":self})
+                try:
+                    if not self.Static_ClassOverwrite:
+                        exec("_self_self._TempCode = \"\\n\"+_self_self.Method.__self__._Code_Overwrite_"+self.Method.__name__ , self.Globals, {"self":self.window(),"_self_self":self})
+                    else:
+                        exec("_self_self._TempCode = \"\\n\"+_self_self.TargetObject._Code_Overwrite_"+self.Method.__name__ , self.Globals, {"self":self.window(),"_self_self":self})
+                except:
+                    exec("_self_self._TempCode = \"\\n\"+"+self.NameInput.text().rsplit(".",1)[0]+"._Code_Overwrite_"+self.Method.__name__ , self.Globals, {"self":self.window(),"_self_self":self})
                 code = self._TempCode
             except:
-                code = "\n"+inspect.getsource(self.method)
+                code = "\n"+inspect.getsource(self.Method)
             for _ in range(0,5):
                 # Filter out leading tabs and spaces.
                 # Do several passes in case a class definition is indented but not infinite passes to avoid endless loops.
@@ -1090,14 +1120,17 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
                 if "\tdef" in code and not True in [s.startswith("def") for s in code.splitlines()]: # Not using elif in case strings containing "def" with leading spaces/tabs are used
                     code = code.replace("\n\t","\n")
             self.Console.setText("# Use ctrl+return to confirm your code changes"+code)
-            self.MethodGlobals = self.method.__globals__ #TODO: Load these globals and the class members to the auto complete of self.Console
+            self.MethodGlobals = self.Method.__globals__ #TODO: Load these globals and the class members to the auto complete of self.Console
             self.highlightInput("Green")
         except:
-            method = str(self.method) if self.Static else self.NameInput.text()
+            method = str(self.Method) if self.Static else self.NameInput.text()
             NC(1,"Could not load code",exc=sys.exc_info(),input=method)
             self.highlightInput("Red")
+            return False
+        else:
+            return True
     
-    def applyCode(self):
+    def applyCode(self): #FEATURE: Edit Functions
         """
         Overwrites the method currently named in the NameInput with the method currently entered in the Console using the globals that where loaded when loadCode was last called. \n
         Alternatively adds a new method to the object or class if the method does not currently exist.
@@ -1114,11 +1147,11 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         ovw,new,cow,cnw = code,code,code,code
         try:
             if not self.Static:
-                exec(f"try:\n\t_self_self.target = {self.NameInput.text()}\nexcept:\n\t_self_self.target = None\ntry:\n\t_self_self.targetObject = "+self.NameInput.text().rsplit(".",1)[0]+"\nexcept:\n\t_self_self.targetObject = None", self.Globals, {"self":self.window(),"_self_self":self})
+                exec(f"try:\n\t_self_self.Target = {self.NameInput.text()}\nexcept:\n\t_self_self.Target = None\ntry:\n\t_self_self.TargetObject = "+self.NameInput.text().rsplit(".",1)[0]+"\nexcept:\n\t_self_self.TargetObject = None", self.Globals, {"self":self.window(),"_self_self":self})
             ovw,new,cow,cnw = self.assembleMethod()
             ovwExc,newExc,cowExc,cnwExc = None,None,None,None
             #MAYBE: try reloading the globals here? and load the globals of __init__ in case it is a new method?
-            if not inspect.isclass(self.targetObject):
+            if not inspect.isclass(self.TargetObject):
                 try:
                     exec(ovw,self.MethodGlobals,{"self":self.window(),"_self_self":self,"types":types,"sys":sys})
                 except:
@@ -1145,33 +1178,33 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         except:
             NC(1,"Could not apply code",exc=sys.exc_info(),input=ovw)
     
-    def assembleMethod(self):
+    def assembleMethod(self): #FEATURE: Edit Functions
         """
         This is a helper function for applyCode that puts together the code necessary for overwriting the method with (or adding) the new one.
         """
         methodName1 = self.Console.text().split("def ",1)[1].split("(",1)[0].strip()
         if not self.Static_ClassOverwrite:
-            className1 = "vars(sys.modules[_self_self.target.__module__])[_self_self.target.__qualname__.rsplit(\".\",1)[0]]"
+            className1 = "vars(sys.modules[_self_self.Target.__module__])[_self_self.Target.__qualname__.rsplit(\".\",1)[0]]"
         else:
-            className1 = "_self_self.targetObject"
+            className1 = "_self_self.TargetObject"
         if not self.Static:
             methodName2 = self.NameInput.text().rsplit(".",1)[1]
             #className2  = self.NameInput.text().rsplit(".",1)[0]
-            className2  = "_self_self.targetObject"
+            className2  = "_self_self.TargetObject"
         else:
-            methodName2 = self.target.__name__
+            methodName2 = self.Target.__name__
             className2  = className1 # This would cause an error but this case should not be possible anyways... maybe investigate this case but it should be impossible that we use this.
         try:
             # OVerWrite
-            ovw = self.Console.text()+f"\nfunctype=type(_self_self.target)\n_self_self.target.__self__.{self.target.__name__} = functype({methodName1}, _self_self.target.__self__)"
-            ovw+= "\nsetattr(_self_self.target.__self__,\"_Code_Overwrite_\"+_self_self.target.__name__, \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\")"
+            ovw = self.Console.text()+f"\nfunctype=type(_self_self.Target)\n_self_self.Target.__self__.{self.Target.__name__} = functype({methodName1}, _self_self.Target.__self__)"
+            ovw+= "\nsetattr(_self_self.Target.__self__,\"_Code_Overwrite_\"+_self_self.Target.__name__, \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\")"
         except:
             ovw = "raise Exception(\"The object does not have this method yet.\")" # This exception will lead to the new-case.
         # NEW
-        new = self.Console.text()+f"\nfunctype=types.MethodType\n_self_self.targetObject.{methodName1} = functype({methodName1}, _self_self.targetObject)"
-        new+= f"\nsetattr(_self_self.targetObject,\"_Code_Overwrite_{methodName1}\", \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\")"
+        new = self.Console.text()+f"\nfunctype=types.MethodType\n_self_self.TargetObject.{methodName1} = functype({methodName1}, _self_self.TargetObject)"
+        new+= f"\nsetattr(_self_self.TargetObject,\"_Code_Overwrite_{methodName1}\", \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\")"
         # Class OverWrite
-        cow = self.Console.text()+f"\nqualname_temp = _self_self.target.__qualname__\n{className1}.{methodName2} = {methodName1}" # className1 will cause an exception if it does not have the method. This then leads to the cnw-case.
+        cow = self.Console.text()+f"\nqualname_temp = _self_self.Target.__qualname__\n{className1}.{methodName2} = {methodName1}" # className1 will cause an exception if it does not have the method. This then leads to the cnw-case.
         cow+= f"\n{className1}.{methodName2}.__qualname__ = qualname_temp" # The __qualname__ of a function that is bound to a class does not include the class name because it is still a function. But since we need it to include the class name we ensure that it is added.
         cow+= f"\n{className1}._Code_Overwrite_{methodName2} = \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\""
         # Class NeW
@@ -1186,7 +1219,7 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         try:
             code = "Not Evaluated yet"
             if self.Static:
-                code = self.assembleMethod_old(self.target)
+                code = self.assembleMethod_old(self.Target)
             else:
                 code = self.assembleMethod_old(self.NameInput.text())
             exec(code,self.MethodGlobals,{"self":self})
@@ -1197,6 +1230,100 @@ class OverloadWidget(QtWidgets.QWidget): #CRITICAL: Add ability to overload and 
         r = self.Console.text()+"\nfunctype=type("+target+")\n"+target+" = functype("+self.Console.text().split("def ",1)[1].split("(",1)[0]+", "+target+".__self__)"
         r+= "\nsetattr("+target+".__self__,\"_Code_Overwrite_\"+"+target+".__name__, \"\"\""+ ( self.Console.text().split("\n",1)[1] if self.Console.text().startswith("#") else self.Console.text() ).replace("\\","\\\\").replace("\n","\\n").replace("\"","\\\"").replace("\'","\\\'")+"\"\"\")"
         return r
+
+class _InspectWidget_memberItem_methodBrowser(_InspectWidget_memberItem):
+    def __init__(self, item, InspectWidget:'MethodBrowserWidget',fullName, parent=None):
+        super().__init__(item, InspectWidget, fullName, parent)
+        self.InspectWidget:'MethodBrowserWidget' = InspectWidget
+        self.Button_Select = None
+        try:
+            if (inspect.isfunction(self.Item) or inspect.ismethod(self.Item)):
+                try:
+                    found_code = bool(inspect.getsource(self.Item))
+                except:
+                    found_code = eval(f"hasattr({self.FullName.rsplit(".",1)[0]},\"_Code_Overwrite_{self.String}\")",self.Item.__globals__) #FEATURE: Edit Functions
+                if found_code:
+                    self.Button_Select = QtWidgets.QToolButton(self)
+                    self.Buttons.append(self.Button_Select)
+                    self.Button_Select.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogOkButton))
+                    self.Button_Select.setFixedSize(self.RowHeight,self.RowHeight)
+                    self.Button_Select.setFocusPolicy(QtCore.Qt.NoFocus)
+                    self.Button_Select.setToolTip("Select this method for editing\nWarning: This button can also appear for Functions but only Methods can be edited at the moment!") #FEATURE: Edit Functions
+                    self.Button_Select.clicked.connect(lambda: self.selectMethod())
+                    self.layout().addWidget(self.Button_Select,0,90)
+        except:
+            pass
+    
+    def selectMethod(self):
+        self.InspectWidget.MethodBrowserWindow.OverloadWidget.NameInput.setText(self.FullName)
+        self.InspectWidget.MethodBrowserWindow.OverloadWidget.loadCode()
+
+class MethodBrowserWidget(InspectWidget):
+    def __init__(self, parent:'MethodBrowserWindow'=None):
+        self.MethodBrowserWindow = parent
+        super().__init__(parent)
+    
+    def displayMembers(self):
+        # We go through the list Multiple times to sort the list as Class->Method/Function->Module
+        for member in self._temp_members_dict.items():
+            if inspect.isclass(member[1]):
+                self._displayMemberHelper(member)
+        for member in self._temp_members_dict.items():
+            if inspect.ismethod(member[1]) or inspect.isfunction(member[1]):
+                self._displayMemberHelper(member)
+        for member in self._temp_members_dict.items():
+            if inspect.ismodule(member[1]):
+                self._displayMemberHelper(member)
+        self.updateListUnitGeometry()
+    
+    def _displayMemberHelper(self, member):
+        itemN = QtWidgets.QListWidgetItem()
+        widget = _InspectWidget_memberItem_methodBrowser(member,self,self.NameInput.text()+"."+member[0] if self.NameInput.text() else member[0],self.MemberList)
+        itemN.setSizeHint(widget.sizeHint())
+        self.MemberList.addItem(itemN)
+        self.MemberList.setItemWidget(itemN, widget)
+
+class MethodBrowserWindow(AWWF):
+    def __init__(self, parent:'OverloadWidget'=None, IncludeTopBar=True, initTopBar=True, IncludeStatusBar=True, IncludeErrorButton=False, FullscreenHidesBars=False):
+        self.OverloadWidget:OverloadWidget = parent
+        super().__init__(parent, IncludeTopBar, initTopBar, IncludeStatusBar, IncludeErrorButton, FullscreenHidesBars)
+        self.setWindowTitle("Overload Widget - Method Browser")
+        self.StandardSize = (700, 700)
+        self.resize(*self.StandardSize)
+        self.setWindowIcon(QtWidgets.QApplication.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
+        self.InspectWidget = MethodBrowserWidget(self)
+        self.setCentralWidget(self.InspectWidget)
+    
+    def close(self):
+        self.OverloadWidget.MethodBrowserWindow = None
+        return super().close()
+
+class _InspectWidget_memberItem_mEdit(_InspectWidget_memberItem_methodBrowser):
+    def __init__(self, item, InspectWidget:'InspectWidget_mEdit',fullName, parent=None):
+        super().__init__(item, InspectWidget, fullName, parent)
+        self.InspectWidget:'InspectWidget_mEdit' = InspectWidget
+        if self.Button_Select:
+            self.Button_Select.clicked.connect(lambda: self.selectMethod())
+            self.Button_Select.setToolTip("Edit the source code of this method\nWarning: This button can also appear for Functions but only Methods can be edited at the moment!") #FEATURE: Edit Functions
+    
+    def selectMethod(self):
+        self.InspectWidget.IDE.OverloadWidget.NameInput.setText(self.FullName)
+        self.InspectWidget.IDE.OverloadWidget.loadCode()
+        self.InspectWidget.IDE.TabWidget.setCurrentWidget(self.InspectWidget.IDE.OverloadWidget)
+
+class InspectWidget_mEdit(InspectWidget):
+    def __init__(self, parent:'exec_Window'=None):
+        self.IDE = parent
+        super().__init__(parent)
+    
+    def displayMembers(self):
+        for member in self._temp_members_dict.items():
+            itemN = QtWidgets.QListWidgetItem()
+            widget = _InspectWidget_memberItem_mEdit(member,self,self.NameInput.text()+"."+member[0] if self.NameInput.text() else member[0],self.MemberList)
+            itemN.setSizeHint(widget.sizeHint())
+            self.MemberList.addItem(itemN)
+            self.MemberList.setItemWidget(itemN, widget)
+        self.updateListUnitGeometry()
 
 class ClassEditorWidget(QtWidgets.QTabWidget):
     def __init__(self, parent: 'QtWidgets.QWidget', _class:'type'):
@@ -1281,7 +1408,7 @@ class exec_Window(AWWF):
             self.TabWidget.addTab(self.ConsoleWidget,"Console")
             
             # Inspect #TODO
-            self.InspectWidget = InspectWidget(self)
+            self.InspectWidget = InspectWidget_mEdit(self)
             self.InspectWidget.setObjectName("InspectWidget")
             self.TabWidget.addTab(self.InspectWidget,"Inspect")
             
