@@ -182,6 +182,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             #self.Input_Field_Highlighter = PythonSH(self.Editor.document())
             #self.Lexer = PythonLexerQsci(self.EditorSc, additionalKeywords)
             self.Lexer = Lexer(self.Editor, self.EditorSc, additionalKeywords)
+            self.setupEditorSc_Autocomplete(additionalKeywords)
         except:
             NC(1,exc=True)
         self.recolour()
@@ -266,6 +267,8 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
                     self.sendExecute()
                 if event.key() == QtCore.Qt.Key_Backspace and self.QScintilla:
                     self.EditorSc.setScrollWidth(10) # Update the scroll width when backspace is pressed. (Can fail when holding backspace on longer documents but can be updated again by simply selecting another line)
+                if event.key() == QtCore.Qt.Key_Space and event.modifiers() == QtCore.Qt.ControlModifier and source == self.EditorSc:
+                    self.EditorSc.autoCompleteFromAll()
             #if self.QScintilla and event.type() == QtCore.QEvent.KeyRelease:
             #    #if event.key() == QtCore.Qt.AltModifier or event.key() == QtCore.Qt.ShiftModifier:
             #    #    modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -273,11 +276,11 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             #    #        self.rectToMulti()
             #    if event.key() == QtCore.Qt.ShiftModifier:
             #        modifiers = QtWidgets.QApplication.keyboardModifiers()
-            #        if not bool(modifiers & QtCore.Qt.AltModifier): # if alt and shift are both not pressed
+            #        if not bool(modifiers & QtCore.Qt.AltModifier): # if alt is not pressed
             #            self.rectToMulti()
             #    elif event.key() == QtCore.Qt.AltModifier:
             #        modifiers = QtWidgets.QApplication.keyboardModifiers()
-            #        if not bool(modifiers & QtCore.Qt.ShiftModifier): # if alt and shift are both not pressed
+            #        if not bool(modifiers & QtCore.Qt.ShiftModifier): # if shift is not pressed
             #            self.rectToMulti()
         except:
             pass
@@ -346,6 +349,38 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             commands.find(Qsci.QsciCommand.CharLeftRectExtend).setKey(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier | QtCore.Qt.Key_Left)
             commands.find(Qsci.QsciCommand.CharRightRectExtend).setKey(QtCore.Qt.AltModifier | QtCore.Qt.ShiftModifier | QtCore.Qt.Key_Right)
     
+    def setupEditorSc_Autocomplete(self, additionalKeywords:list[str], apiList:list[str]=None):
+        if self.QScintilla:
+            if not apiList: apiList = []
+            self.EditorSc.setAutoCompletionCaseSensitivity(False)
+            self.EditorSc.setAutoCompletionReplaceWord(False)
+            self.EditorSc.setAutoCompletionSource(Qsci.QsciScintilla.AcsAll)
+            self.EditorSc.setAutoCompletionThreshold(1)
+            self.EditorSc.setCallTipsStyle(Qsci.QsciScintilla.CallTipsNoContext)
+            
+            self._EditorSc_ACapi = Qsci.QsciAPIs(self.Lexer.QSciSH)
+            
+            additionalKeywords = set(additionalKeywords)
+            for ac in additionalKeywords:
+                self._EditorSc_ACapi.add(ac)
+            
+            for ac in apiList:
+                self._EditorSc_ACapi.add(ac)
+            
+            #self._EditorSc_ACapi.add("testFunc1()")
+            #self._EditorSc_ACapi.add("testFunc2() A Test Func")
+            #self._EditorSc_ACapi.add("testFunc3(int arg_1)")
+            #self._EditorSc_ACapi.add("testFunc4(int arg_1) Another Test Func")
+            #self._EditorSc_ACapi.add("testFunc5(int arg_1,int arg_2,str arg_3) Yet another Test Func")
+            
+            self._EditorSc_ACapi.prepare() # This finalizes the API and prohibits all further changes
+            
+            #TODO: If self._EditorSc_ACapi already exists when calling this method the old one needs to be deleted first
+            #TODO: Call this method where appropriate to set up all methods in the namespace
+            #MAYBE: When calling this we might want to recreate the whole lexer to set up more highlighting
+            #MAYBE: If the apiList is complete we probably don't want to also add additionalKeywords as there would be duplicates
+            #FEATURE: When creating the apiList, mark functions as such
+    
     def setFont(self,font):
         font.setPointSize(App().font().pointSize())
         super(CodeEditorWidget, self).setFont(font)
@@ -382,6 +417,10 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             self.EditorSc.setMatchedBraceForegroundColor(App().PythonLexerColours["Keyword"].color())
             self.EditorSc.setUnmatchedBraceBackgroundColor(App().Palette1.color(QtGui.QPalette.Active,QtGui.QPalette.Base))
             self.EditorSc.setUnmatchedBraceForegroundColor(App().PythonLexerColours["UnclosedString"].color())
+            
+            self.EditorSc.setCallTipsBackgroundColor(App().Palette1.color(QtGui.QPalette.Active,QtGui.QPalette.Base))
+            self.EditorSc.setCallTipsForegroundColor(App().Palette1.color(QtGui.QPalette.Active,QtGui.QPalette.Text))
+            self.EditorSc.setCallTipsHighlightColor(App().PythonLexerColours["Keyword"].color())
         if self.hasExecuteButton:
             try:
                 self.executeButton.setIcon(recolourIcon(self.style().standardIcon(QtWidgets.QStyle.SP_MediaPlay)))
