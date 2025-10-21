@@ -91,6 +91,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
                     ExecuteButton = True, ExecuteButtonToolTip = "Execute the code",
                     SaveButton = False, LoadButton = False, StandardFolder = "", #CRITICAL: Implement these!!! (EDFA could use these to make saving and loading templates easier.)
                     CheckBox = False, CheckBoxToolTip = "This Check Box seems to have no function",
+                    APIList:list[str]=None,
                     ):
         if additionalKeywords is None:
             additionalKeywords = []
@@ -182,7 +183,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             #self.Input_Field_Highlighter = PythonSH(self.Editor.document())
             #self.Lexer = PythonLexerQsci(self.EditorSc, additionalKeywords)
             self.Lexer = Lexer(self.Editor, self.EditorSc, additionalKeywords)
-            self.setupEditorSc_Autocomplete(additionalKeywords)
+            self.setupEditorSc_Autocomplete(additionalKeywords, APIList)
         except:
             NC(1,exc=True)
         self.recolour()
@@ -356,16 +357,16 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             self.EditorSc.setAutoCompletionReplaceWord(False)
             self.EditorSc.setAutoCompletionSource(Qsci.QsciScintilla.AcsAll)
             self.EditorSc.setAutoCompletionThreshold(1)
-            self.EditorSc.setCallTipsStyle(Qsci.QsciScintilla.CallTipsNoContext)
+            self.EditorSc.setCallTipsStyle(Qsci.QsciScintilla.CallTipsContext)
             
             self._EditorSc_ACapi = Qsci.QsciAPIs(self.Lexer.QSciSH)
             
-            additionalKeywords = set(additionalKeywords)
-            for ac in additionalKeywords:
-                self._EditorSc_ACapi.add(ac)
-            
-            for ac in apiList:
-                self._EditorSc_ACapi.add(ac)
+            if not apiList:
+                for ac in additionalKeywords:
+                    self._EditorSc_ACapi.add(ac)
+            else:
+                for ac in apiList:
+                    self._EditorSc_ACapi.add(ac)
             
             #self._EditorSc_ACapi.add("testFunc1()")
             #self._EditorSc_ACapi.add("testFunc2() A Test Func")
@@ -636,7 +637,8 @@ class ConsoleWidget(QtWidgets.QSplitter):
         font = QtGui.QFontDatabase.systemFont(QtGui.QFontDatabase.FixedFont)
         self.Console = CodeEditorWidget(self,additionalKeywords=self.additionalKeywords()+additionalKeywords,
                                         ExecuteButton=True, ExecuteButtonToolTip="Execute the code",
-                                        CheckBox = True, CheckBoxToolTip = "If checked the locals will be persistend between executions.\nThus if not checked the locals will be cleared before and after execution."
+                                        CheckBox = True, CheckBoxToolTip = "If checked the locals will be persistend between executions.\nThus if not checked the locals will be cleared before and after execution.",
+                                        APIList=self.getAPIList()
                                         )
         self.Console.setFont(font)
         self.Console.setText("# TODO: Write some introductory text here.\n")
@@ -700,6 +702,43 @@ class ConsoleWidget(QtWidgets.QSplitter):
         """
         self.updateLocals = function
     
+    def getSpecialLocals(self):
+        return {
+            "app"     : App() ,
+            "window"  : App().MainWindow ,
+            "mw"      : App().MainWindow ,
+            "self"    : self.window() ,
+            "display" : self.display ,
+            "dpl"     : self.dpl ,
+            "dir"     : self.dir ,
+            "code"    : self.code ,
+            "help"    : self.help ,
+            "getPath" : lambda mustExist=False: getPath(mustExist) ,
+            }
+    
+    def getAPIList(self):
+        l = set()
+        d = dict({**builtins.__dict__, **self.Locals, **self.Globals, **self.LocalsExternal, **self._LocalsExternal})
+        d.update(self.getSpecialLocals())
+        self._createAPIList(d,l,set(),3)
+        return l
+    
+    def _createAPIList(self, APIDict:dict, SetToAddTo:set, ModuleSet:set, recursionDepth:int=3, ModulePrefix:str=""):
+        if ModulePrefix: ModulePrefix+="."
+        for k,v in APIDict.items():
+            if k.startswith("__"): continue
+            if inspect.ismodule(v) and k in ModuleSet: continue
+            s = k
+            #if hasattr(v, "__call__"): s+="()" #MAYBE: Find out how to add params
+            s+=" Type: "+str(type(v)) #TODO: Is not displayed for func until parentheses are typed
+            if hasattr(v, "__doc__") and isinstance(v.__doc__, str) and v.__doc__: s+=" Doc: "+(v.__doc__.replace("\n"," ") if len(v.__doc__)<60 else v.__doc__.replace("\n"," ")[:55])
+            if "AGeApp" in s: print(s)
+            s = s.replace(".","․") # Replace dot with similar character to not confuse the parser who tends to interpret the dor as a module separator
+            SetToAddTo.add(ModulePrefix+s)
+            if inspect.ismodule(v): ModuleSet.add(k)
+            if recursionDepth>0 and (inspect.ismodule(v) or k in ["self",] or (not (inspect.isclass(v) or inspect.ismethod(v) or inspect.isfunction(v)))) and hasattr(v,"__dict__"):
+                self._createAPIList(v.__dict__, SetToAddTo, ModuleSet, recursionDepth-1, ModulePrefix+k)
+    
     def executeCode(self):
         if self.updateLocals: self._setLocals(self.updateLocals())
         input_text = self.Console.text()
@@ -708,18 +747,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
                 self.Locals = {}
             self.Locals.update(self.Globals)
             # Set app and window for the local dictionary so that they can be used in the execution
-            self.Locals.update({
-                "app"     : App() ,
-                "window"  : App().MainWindow ,
-                "mw"      : App().MainWindow ,
-                "self"    : self.window() ,
-                "display" : self.display ,
-                "dpl"     : self.dpl ,
-                "dir"     : self.dir ,
-                "code"    : self.code ,
-                "help"    : self.help ,
-                "getPath" : lambda mustExist=False: getPath(mustExist) ,
-                })
+            self.Locals.update(self.getSpecialLocals())
             self.Locals.update(self.LocalsExternal)
             self.Locals.update(self._LocalsExternal)
             #NOTE: Having locals and globals be the same dictionary allows importing modules and then using them in functions
