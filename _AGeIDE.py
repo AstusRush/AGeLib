@@ -528,7 +528,7 @@ class _InspectWidget_memberItem(QtWidgets.QWidget):
         self.InspectWidget.zoom(self.String)
     
     def callMethod(self):
-        proceed = False#QtWidgets.QMessageBox.question(None,"Are you sure",f"Do you really want to call the method \"{self.string}\"?") == QtWidgets.QMessageBox.Yes
+        proceed = False#QtWidgets.QMessageBox.question(None,"Are you sure",f"Do you really want to call the method \"{self.String}\"?") == QtWidgets.QMessageBox.Yes
         args, proceed = QtWidgets.QInputDialog.getText(self,"Are you sure?",f"Do you really want to call the method \"{self.String}\"?\nIf so, do you want to call it with arguments?")
         if not proceed: return
         try:
@@ -563,7 +563,7 @@ class _MemberListWidget(QtWidgets.QListWidget):
                 SelectedItems = self.selectedItems()
                 if len(SelectedItems)==1:
                     item = SelectedItems[0]
-                    QtWidgets.QApplication.clipboard().setText(self.itemWidget(item).string)
+                    QtWidgets.QApplication.clipboard().setText(self.itemWidget(item).String)
                     event.accept()
                     return
             super(_MemberListWidget, self).keyPressEvent(event)
