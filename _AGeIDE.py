@@ -732,7 +732,6 @@ class ConsoleWidget(QtWidgets.QSplitter):
             #if hasattr(v, "__call__"): s+="()" #MAYBE: Find out how to add params
             s+=" Type: "+str(type(v)) #TODO: Is not displayed for func until parentheses are typed
             if hasattr(v, "__doc__") and isinstance(v.__doc__, str) and v.__doc__: s+=" Doc: "+(v.__doc__.replace("\n"," ") if len(v.__doc__)<60 else v.__doc__.replace("\n"," ")[:55])
-            if "AGeApp" in s: print(s)
             s = s.replace(".","․") # Replace dot with similar character to not confuse the parser who tends to interpret the dor as a module separator
             SetToAddTo.add(ModulePrefix+s)
             if inspect.ismodule(v): ModuleSet.add(k)
