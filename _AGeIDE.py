@@ -29,16 +29,19 @@ from . import _AGeIDE_SH
 def getDirDict(theObject):
     d = dict()
     for i in dir(theObject):
+        #TODO: This "dir returns other values to "vars" (which uses "__dict__"). It might be better to use "vars" or both. More research required
+        #TODO: Is there a way to get a list of members of class or can it only be done for objects (instances of classes)? Maybe by analysing the code of the init with inspect?
         try:
             d[i] = getattr(theObject,i)
         except: pass
     return d
 
-def createAPIList(APIDict:dict, SetToAddTo:set, ModuleSet:set, recursionDepth:int=3, ModulePrefix:str=""):
+def createAPIList(APIDict:dict, SetToAddTo:set, ModuleSet:set, recursionDepth:int=4, ModulePrefix:str="",*, _isInitialCall=True):
     if ModulePrefix: ModulePrefix+="."
     for k,v in APIDict.items():
         if k.startswith("__"): continue
         if inspect.ismodule(v) and k in ModuleSet: continue
+        if not _isInitialCall and inspect.isbuiltin(v): continue # ensures that builtins are only shown once
         s = k
         #if hasattr(v, "__call__"): s+="()" #MAYBE: Find out how to add params
         s+=" Type: "+str(type(v)) #TODO: Is not displayed for func until parentheses are typed
@@ -49,7 +52,8 @@ def createAPIList(APIDict:dict, SetToAddTo:set, ModuleSet:set, recursionDepth:in
         try: hasattr(v,"test") # This checks if hasattr can be invoked. Catches the case when a C++ object is already deleted
         except: continue
         if recursionDepth>0 and (inspect.ismodule(v) or k in ["self",] or (not (inspect.isclass(v) or inspect.ismethod(v) or inspect.isfunction(v)))) and hasattr(v,"__dir__"):
-            createAPIList({i:getattr(v,i) for i in dir(v) if hasattr(v,i)}, SetToAddTo, ModuleSet, recursionDepth-1, ModulePrefix+k)
+            #createAPIList({i:getattr(v,i) for i in dir(v) if hasattr(v,i)}, SetToAddTo, ModuleSet, recursionDepth-1, ModulePrefix+k, _isInitialCall=False)
+            createAPIList(getDirDict(v), SetToAddTo, ModuleSet, recursionDepth-1, ModulePrefix+k, _isInitialCall=False)
 #endregion Helper Functions
 
 #region IDE General Widgets
@@ -107,7 +111,6 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
     """
     #TODO: Add line numbers to Editor
     #TODO: Enable auto indentation for Editor
-    #TODO: Make autocomplete for EditorSc
     #TODO: Try to add the Finder to EditorSc
     returnPressed = pyqtSignal()
     returnCtrlPressed = pyqtSignal()
@@ -120,6 +123,7 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
                     APIList:list[str]=None,
                     APIUpdater:typing.Callable[[],list[str]]=None,
                     APIUpdateButton = False,
+                    automaticallySetUpAutoComplete=True,
                     ):
         if additionalKeywords is None:
             additionalKeywords = []
@@ -223,7 +227,9 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             #self.Input_Field_Highlighter = PythonSH(self.Editor.document())
             #self.Lexer = PythonLexerQsci(self.EditorSc, additionalKeywords)
             self.Lexer = Lexer(self.Editor, self.EditorSc, additionalKeywords)
-            self.setupEditorSc_Autocomplete(APIList)
+            if self.QScintilla:
+                self.Lexer.QSciSH.setFoldQuotes(True)
+            if automaticallySetUpAutoComplete: self.setupEditorSc_Autocomplete(APIList)
             self.APIUpdater = APIUpdater
         except:
             NC(1,exc=True)
@@ -352,8 +358,11 @@ class CodeEditorWidget(QtWidgets.QWidget): # https://stackoverflow.com/questions
             self.EditorSc.setTabWidth(4)
             self.EditorSc.setTabIndents(True)
             self.EditorSc.setAutoIndent(True)
-            self.EditorSc.setIndentationsUseTabs(True)
+            self.EditorSc.setIndentationsUseTabs(False)
             self.EditorSc.setUtf8(True)
+            self.EditorSc.setBraceMatching(True)
+            self.EditorSc.setBackspaceUnindents(True)
+            self.EditorSc.setEolMode(Qsci.QsciScintilla.EolUnix)
             #
             self.EditorSc.setScrollWidth(10)
             self.EditorSc.setScrollWidthTracking(True)
@@ -662,7 +671,7 @@ class _MemberListWidget(QtWidgets.QListWidget):
 #CRITICAL: Validate (should already be in) self should refer to the window instead of the widget for easier navigation
 
 class ConsoleWidget(QtWidgets.QSplitter):
-    def __init__(self, parent = None, additionalKeywords=None):
+    def __init__(self, parent = None, additionalKeywords=None, automaticallySetUpAutoComplete=True):
         """
         TODO: Write Documentation
         """
@@ -685,7 +694,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
                                         ExecuteButton=True, ExecuteButtonToolTip="Execute the code",
                                         CheckBox = True, CheckBoxToolTip = "If checked the locals will be persistend between executions.\nThus if not checked the locals will be cleared before and after execution.",
                                         APIList=self.getAPIList(),
-                                        APIUpdater=lambda: self.getAPIList(),APIUpdateButton=True,
+                                        APIUpdater=lambda: self.getAPIList(),APIUpdateButton=True,automaticallySetUpAutoComplete=automaticallySetUpAutoComplete,
                                         )
         self.Console.setFont(font)
         self.Console.setText("# TODO: Write some introductory text here.\n")
@@ -765,7 +774,7 @@ class ConsoleWidget(QtWidgets.QSplitter):
         l = set()
         d = dict({**builtins.__dict__, **self.Locals, **self.Globals, **self.LocalsExternal, **self._LocalsExternal})
         d.update(self.getSpecialLocals())
-        createAPIList(d,l,set(),3)
+        createAPIList(d,l,set())
         return l
     
     def executeCode(self):
@@ -1129,7 +1138,7 @@ class OverloadWidget(QtWidgets.QWidget): #FEATURE: Add ability to overload and a
         self.ApplyButton.setToolTipDuration(0)
         self.layout().addWidget(self.ApplyButton,0,3)
         self.Console = CodeEditorWidget(self,additionalKeywords=["self","NC"],ExecuteButton=False,
-                                        APIList=self.getAPIList(),APIUpdater=lambda: self.getAPIList(),APIUpdateButton=True,
+                                        APIList=self.getAPIList(),APIUpdater=lambda: self.getAPIList(),APIUpdateButton=True,automaticallySetUpAutoComplete=False,
                                         )
         self.layout().addWidget(self.Console, 1, 0, 1, 4)
         self.ApplyButton.clicked.connect(lambda: self.Console.sendExecute())
@@ -1190,12 +1199,20 @@ class OverloadWidget(QtWidgets.QWidget): #FEATURE: Add ability to overload and a
     def getAPIList(self):
         l = set()
         d = dict({**self.MethodGlobals,"_self_self":self,"types":types,"sys":sys})
-        #if self.TargetObject is not None:
         try:
-            d["self"] = self.Method.__self__
+            if self.Method is not None:
+                try:
+                    d["self"] = self.Method.__self__
+                except:
+                    if not self.Static:
+                        exec(f"try:\n\t_self_self.Target = {self.NameInput.text()}\nexcept:\n\t_self_self.Target = None\ntry:\n\t_self_self.TargetObject = "+self.NameInput.text().rsplit(".",1)[0]+"\nexcept:\n\t_self_self.TargetObject = None", self.Globals, {"self":self.window(),"_self_self":self})
+                    if not inspect.isclass(self.TargetObject) or self.TargetObject is not None:
+                        d["self"] = self.TargetObject
+                    else:
+                        NC(2,"Could not load autocomplete list for \"self\"",exc=True)
         except:
             NC(2,"Could not load autocomplete list for \"self\"",exc=True)
-        createAPIList(d,l,set(),3)
+        createAPIList(d,l,set())
         return l
     
     def loadCode(self):
@@ -1223,7 +1240,7 @@ class OverloadWidget(QtWidgets.QWidget): #FEATURE: Add ability to overload and a
                 # Filter out leading tabs and spaces.
                 # Do several passes in case a class definition is indented but not infinite passes to avoid endless loops.
                 # (I can conceive of many ways that could lead to one or both if cases evaluating to True while replace does not actually perform any changes.
-                #   All of these are far too uncommon to warrent handling and most make the code invalid anyways.)
+                #   All of these are far too uncommon to warrant handling and most make the code invalid anyways.)
                 # textwrap.dedent is not used because empty lines should not be normalized to just a newline character but instead be dedented like all other lines
                 if "    def" in code and not True in [s.startswith("def") for s in code.splitlines()]:
                     code = code.replace("\n    ","\n")
@@ -1514,7 +1531,7 @@ class exec_Window(AWWF):
             self.OverloadWidget.Console.setFont(font)
             
             # Console #REM#
-            self.ConsoleWidget = ConsoleWidget(self,["Plot","draw","clear","plot"])
+            self.ConsoleWidget = ConsoleWidget(self,["Plot","draw","clear","plot"],automaticallySetUpAutoComplete=False)
             self.ConsoleWidget.setLocals({"Plot":lambda:self.Plot,"draw":lambda:self.Plot.draw(),"clear":lambda:self.Plot.clear(),"plot":lambda *args,**wargs:self.Plot.plot(*args,**wargs)})
             self.TabWidget.addTab(self.ConsoleWidget,"Console")
             
